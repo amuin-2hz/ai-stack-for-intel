@@ -2,6 +2,7 @@
 .claude/
 .doc/
 .analysis/
+.docs/
 
 # Dependencies
 node_modules/

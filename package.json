@@ -2,6 +2,7 @@
   "name": "amuin-ai-stack",
   "version": "0.2.0",
   "description": "Amuin AI Stack for Linux Intel - on-device LLM + Vision + ASR + TTS",
+  "license": "MIT",
   "private": true,
   "main": "src/main/dist/index.js",
   "scripts": {

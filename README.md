@@ -44,7 +44,6 @@ Electron 桌面壳
 | `src/inference/` | Python 推理引擎 |
 | `configs/` | 模型清单与设备策略 |
 | `ops/scripts/` | 模型下载和运维脚本 |
-| `.docs/` | 本地开发、安装、发布等项目说明 |
 
 ## 平台定位
 
@@ -60,12 +59,21 @@ Electron 桌面壳
 | 加速 | Intel GPU / NPU 驱动与 OpenVINO 运行环境 |
 | 基础依赖 | `python3`, `nodejs`, `ffmpeg`, `sox` |
 
+## 配套模型
+
+发布包默认不内置模型权重，避免安装包过大。用户可以通过管理台下载模型，也可以从 ModelScope 获取下面已经转换或验证过的模型：
+
+| 能力 | 推荐模型 | 格式 | 推荐设备 | 下载地址 |
+| --- | --- | --- | --- | --- |
+| 对话 | Qwen3.5-2B | OpenVINO FP16 | GPU | https://modelscope.cn/models/amuin/Qwen3.5-2B-fp16-ov |
+| 视觉理解 | Qwen2.5-VL-3B | OpenVINO FP16 | GPU | https://modelscope.cn/models/amuin/Qwen2.5-VL-3B-fp16-ov |
+| 语音识别 | Qwen3-ASR-0.6B | OpenVINO INT8 | NPU / CPU | https://modelscope.cn/models/amuin/Qwen3-ASR-0.6B-int8-ov |
+| 语音合成 | Qwen3-TTS-0.6B CustomVoice | PyTorch CPU | CPU | https://modelscope.cn/models/amuin/Qwen3-TTS-0.6B-CustomVoice |
+
 ## 项目状态
 
 当前目标是交付 Linux Intel 版的本地 AI 桌面运行栈，并提供可发布的 `.deb` 包。已覆盖模型管理、四类推理引擎、管理台、下载任务和 OpenAI 兼容接口等主路径。
 
-更细的本地运行、源码启动、打包发布和 API 验证说明放在 [.docs/local-project.md](.docs/local-project.md)。
-
 ## 许可证
 
-MIT
+本项目源码采用 MIT License，详见 [LICENSE](LICENSE)。模型权重遵循对应模型仓库自身的许可证和使用条款。
