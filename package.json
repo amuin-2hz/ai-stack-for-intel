@@ -1,0 +1,50 @@
+{
+  "name": "amuin-ai-stack",
+  "version": "0.2.0",
+  "description": "Amuin AI Stack for Linux Intel - on-device LLM + Vision + ASR + TTS",
+  "private": true,
+  "main": "src/main/dist/index.js",
+  "scripts": {
+    "dev:api": "./scripts/dev-api.sh",
+    "dev:web": "./scripts/dev-web.sh",
+    "dev:electron": "./scripts/dev-electron.sh",
+    "build:api": "cd src/api && npx tsc -p tsconfig.json",
+    "build:frontend": "cd src/frontend && npm run build",
+    "build:main": "cd src/main && npx tsc -p tsconfig.json",
+    "build": "npm run build:api && npm run build:main && npm run build:frontend",
+    "start": "node src/api/dist/server.js",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "deb": "./scripts/build-deb.sh"
+  },
+  "build": {
+    "appId": "ai.amuin.stack",
+    "productName": "Amuin AI Stack",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "src/main/dist/**/*",
+      "src/api/dist/**/*",
+      "src/api/node_modules/**/*",
+      "src/frontend/dist/**/*",
+      "src/inference/**/*",
+      "configs/**/*",
+      "README.md",
+      "ops/**/*"
+    ],
+    "linux": {
+      "target": [
+        "deb",
+        "AppImage"
+      ],
+      "category": "Utility",
+      "icon": "assets/icon.png"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "electron": "^33.0.0",
+    "typescript": "^5.7.0"
+  }
+}

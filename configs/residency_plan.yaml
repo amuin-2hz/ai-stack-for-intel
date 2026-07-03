@@ -1,0 +1,40 @@
+# LocalRuntime Device Residency Plan
+# Defines which models run on each device (NPU/GPU/CPU)
+
+devices:
+  NPU:
+    memory: 2GB
+    residents: [asr_encoder]     # ASR audio_encoder (356MB, static shape)
+    candidates: []
+  GPU:
+    memory: shared
+    residents: [llm, vlm]        # LLM (5.2GB) + VLM (7.7GB)
+    candidates: []
+  CPU:
+    memory: shared
+    residents: [asr_seq, tts]    # ASR thinker/decoder + TTS (qwen-tts)
+    fallback: true
+
+engines:
+  chat:
+    model: Qwen3.5-2B-fp16-ov
+    device: GPU
+    port: 31000
+  vision:
+    model: Qwen2.5-VL-3B-fp16-ov
+    device: GPU
+    port: 31001
+  asr:
+    model: Qwen3-ASR-0.6B-int8-ov
+    device: NPU        # audio_encoder on NPU, thinker/decoder on CPU
+    port: 31002
+  tts:
+    model: Qwen3-TTS-0.6B-CustomVoice
+    device: CPU        # qwen-tts PyTorch, no OpenVINO path
+    port: 31003
+
+serving_notes:
+  - "ASR audio_encoder (356MB) runs on NPU, thinker+decoder on CPU (dynamic shapes)"
+  - "LLM + VLM share GPU memory, total ~12.9GB"
+  - "TTS uses qwen-tts PyTorch package — CPU only, no NPU/GPU path"
+  - "All engines fall back to CPU when preferred device is unavailable"

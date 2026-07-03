@@ -1,0 +1,61 @@
+# Local work notes and agent/editor settings
+.claude/
+.doc/
+.analysis/
+
+# Dependencies
+node_modules/
+src/*/node_modules/
+
+# Build output
+src/*/dist/
+dist/
+dist-electron/
+dist-deb/
+*.deb
+*.AppImage
+*.rpm
+*.tar.gz
+*.zip
+
+# Local models and runtime data
+models/
+logs/
+state/
+lfs/
+
+# Local test/runtime assets
+data/*.wav
+data/*.mp3
+data/*.flac
+data/*.pcm
+data/*.raw
+
+# Local environment and proxy settings
+.env
+.env.*
+!.env.example
+configs/proxy.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# TypeScript / frontend cache
+*.tsbuildinfo
+.vite/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

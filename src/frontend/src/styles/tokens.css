@@ -1,0 +1,68 @@
+/* ═══════════════════════════════════════════════════
+   Design Tokens — LocalRuntime
+   Light & dark modes via CSS custom properties
+   ═══════════════════════════════════════════════════ */
+
+:root {
+  /* ── Brand ── */
+  --color-primary: #0aa7d8;
+  --color-primary-dark: #006b95;
+  --color-primary-light: #67e8f9;
+
+  /* ── Surfaces ── */
+  --color-bg: #eef4f8;
+  --color-surface: rgba(255, 255, 255, .95);
+  --color-surface-hover: rgba(10, 167, 216, .04);
+
+  /* ── Text ── */
+  --color-text: #15202b;
+  --color-text-heading: #1e3343;
+  --color-text-muted: #63798a;
+  --color-text-subtle: #8ca6b8;
+
+  /* ── Borders ── */
+  --border-color: #d5e3ed;
+  --border-color-light: rgba(99, 121, 138, .1);
+  --border-color-subtle: rgba(99, 121, 138, .06);
+
+  /* ── Shadows ── */
+  --shadow-card: 0 8px 20px rgba(18, 45, 63, .055);
+  --shadow-card-hover: 0 12px 28px rgba(18, 45, 63, .08);
+
+  /* ── Radii ── */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* ── Typography ── */
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", "Fira Code", "Consolas", monospace;
+  --font-size-base: 14px;
+  --font-size-sm: 0.78rem;
+  --font-size-xs: 0.68rem;
+
+  /* ── Layout ── */
+  --sidebar-width: 200px;
+  --sidebar-collapsed-width: 64px;
+  --topbar-height: 40px;
+  --hero-height: 100px;
+}
+
+/* ── Dark Mode ────────────────────────────────── */
+[data-theme="dark"] {
+  --color-bg: #070c12;
+  --color-surface: rgba(13, 24, 34, .94);
+  --color-surface-hover: rgba(10, 167, 216, .08);
+
+  --color-text: #d8eef8;
+  --color-text-heading: #edf7fb;
+  --color-text-muted: #9bb4c3;
+  --color-text-subtle: #6b8a9e;
+
+  --border-color: rgba(74, 190, 255, .2);
+  --border-color-light: rgba(74, 190, 255, .1);
+  --border-color-subtle: rgba(74, 190, 255, .06);
+
+  --shadow-card: 0 12px 26px rgba(0, 0, 0, .22);
+  --shadow-card-hover: 0 16px 32px rgba(0, 0, 0, .28);
+}
