@@ -19,6 +19,7 @@ mkdir -p   "$APP_DIR/src/main"   "$APP_DIR/src/api"   "$APP_DIR/src/frontend"   
 
 cp -a package.json README.md "$APP_DIR/"
 cp -a configs/. "$APP_DIR/configs/"
+rm -f "$APP_DIR/configs/proxy.env"
 cp -a ops/. "$APP_DIR/ops/"
 cp -a src/main/dist "$APP_DIR/src/main/"
 cp -a src/api/dist src/api/package.json "$APP_DIR/src/api/"
@@ -26,6 +27,22 @@ cp -a src/api/node_modules "$APP_DIR/src/api/"
 cp -a src/frontend/dist "$APP_DIR/src/frontend/"
 cp -a src/inference/. "$APP_DIR/src/inference/"
 cp -a node_modules "$APP_DIR/"
+
+echo "=== Pruning build-only dependencies ==="
+rm -rf \
+  "$APP_DIR/node_modules/@types" \
+  "$APP_DIR/node_modules/typescript" \
+  "$APP_DIR/node_modules/.bin/tsc" \
+  "$APP_DIR/node_modules/.bin/tsserver" \
+  "$APP_DIR/src/api/node_modules/@types" \
+  "$APP_DIR/src/api/node_modules/@esbuild" \
+  "$APP_DIR/src/api/node_modules/esbuild" \
+  "$APP_DIR/src/api/node_modules/tsx" \
+  "$APP_DIR/src/api/node_modules/typescript" \
+  "$APP_DIR/src/api/node_modules/.bin/esbuild" \
+  "$APP_DIR/src/api/node_modules/.bin/tsx" \
+  "$APP_DIR/src/api/node_modules/.bin/tsc" \
+  "$APP_DIR/src/api/node_modules/.bin/tsserver"
 
 find "$APP_DIR" -type d -name __pycache__ -prune -exec rm -rf {} +
 find "$APP_DIR" -type d -exec chmod 0755 {} +
