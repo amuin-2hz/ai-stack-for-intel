@@ -47,6 +47,12 @@ def load_models(model_path: str, device: str = DEVICE):
     core = ov.Core()
     mp = Path(model_path)
 
+    if (mp / "thinker" / "openvino_thinker_language_model.xml").exists():
+        raise RuntimeError(
+            "This Qwen3-ASR thinker export requires the experimental Optimum Intel "
+            "Qwen3-ASR runtime. Use the stable Qwen3-ASR-0.6B model with this engine."
+        )
+
     # Audio encoder: static shape, can run on NPU
     enc_device = device
     # Thinker & decoder: need dynamic shapes for autoregressive loop

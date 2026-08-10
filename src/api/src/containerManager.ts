@@ -10,12 +10,12 @@ export { enginePresets as presets, presetForModel } from "./engineManager.js";
 export { presetForKey } from "./containerPresets.js";
 
 export function isModelPublishingContainer(name: string): boolean {
-  const prefixes = ["chat_", "vision_", "asr_", "tts_"];
+  const prefixes = ["chat_", "vision_", "asr_", "tts_", "embedding_", "rerank_"];
   return prefixes.some((p) => name.startsWith(p));
 }
 
 export const hiddenContainerNames = new Set<string>();
-export const modelRuntimePrefixes = ["chat_", "vision_", "asr_", "tts_"];
+export const modelRuntimePrefixes = ["chat_", "vision_", "asr_", "tts_", "embedding_", "rerank_"];
 
 // ── Re-export engine management ──
 export {

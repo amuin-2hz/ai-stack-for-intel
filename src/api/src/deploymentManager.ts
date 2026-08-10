@@ -19,14 +19,14 @@ export interface DeploymentRequest {
 
 /* ── port map ─────────────────────────────────────── */
 function defaultPortFor(engineType: string): number {
-  const ports: Record<string, number> = { chat: 31000, vision: 31001, asr: 31002, tts: 31003 };
+  const ports: Record<string, number> = { chat: 31000, vision: 31001, asr: 31002, tts: 31003, embedding: 31004, rerank: 31005 };
   return ports[engineType] ?? 31000;
 }
 
 function engineTypeFor(serviceTypeStr: string): EngineType {
   const map: Record<string, EngineType> = {
     vllm: "chat", trtllm: "chat", pytorch: "asr",
-    chat: "chat", vision: "vision", asr: "asr", tts: "tts"
+    chat: "chat", vision: "vision", asr: "asr", tts: "tts", embedding: "embedding", rerank: "rerank"
   };
   return map[serviceTypeStr] ?? "chat";
 }
@@ -57,7 +57,7 @@ export function createDeploymentPlan(
     launch: {
       mode: "managed_task" as const,
       env: {} as Record<string, string>,
-      command: `python3 src/inference/${engineType === "chat" ? "chat" : engineType === "vision" ? "vision" : engineType === "asr" ? "asr" : "tts_ov"}.py --port ${port} --model-path models/${model.display_name}`,
+      command: `python3 src/inference/${engineType === "chat" ? "chat" : engineType === "vision" ? "vision" : engineType === "asr" ? "asr" : engineType === "tts" ? "tts_qwen" : engineType === "embedding" ? "embeddings" : "rerank"}.py --port ${port} --model-path models/${model.display_name}`,
       working_directory: baseDir,
       notes: [`${engineType} engine on port ${port}`]
     },

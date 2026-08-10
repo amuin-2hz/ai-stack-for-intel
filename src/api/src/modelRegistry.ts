@@ -83,8 +83,8 @@ export async function isModelPublished(modelId: string): Promise<{ published: bo
 
 /* ── deployments ───────────────────────────────── */
 export async function listDeployments(_modelsRoot: string): Promise<DeploymentRecord[]> {
-  const engineTypes = ["chat", "vision", "asr", "tts"];
-  const portMap: Record<string, number> = { chat: 31000, vision: 31001, asr: 31002, tts: 31003 };
+  const engineTypes = ["chat", "vision", "asr", "tts", "embedding", "rerank"];
+  const portMap: Record<string, number> = { chat: 31000, vision: 31001, asr: 31002, tts: 31003, embedding: 31004, rerank: 31005 };
 
   return engineTypes.map((type) => ({
     deployment_id: `svc_${type}`,
@@ -147,7 +147,7 @@ async function auditModelPath(path: string, gpuMemory: GpuMemoryInfo): Promise<M
     try { await access(join(path, ".temp")); return true; } catch { return false; }
   })() : false;
 
-  const params: FormatMatchParams = { path, isFile: rootStat.isFile(), files, names, configs, config };
+  const params: FormatMatchParams = { path, isFile: rootStat.isFile(), files, names, configs, config, tokenizerConfig };
   const strategy = resolveStrategy(params);
   const capabilities = detectCaps(params);
 
@@ -157,7 +157,7 @@ async function auditModelPath(path: string, gpuMemory: GpuMemoryInfo): Promise<M
   const sizeBytes = (await Promise.all(files.map(safeSize))).reduce((sum, size) => sum + size, 0);
   const basePath = rootStat.isDirectory() ? path : join(path, "..");
 
-  const compatibility = compatibilityForModel(format, capabilities, configs);
+  const compatibility = compatibilityForModel(format, capabilities, params);
   const audit = auditForModel(format, capabilities, configs, weightFiles.length, incompleteFiles.length, hasTempDir, compatibility, sizeBytes, gpuMemory);
 
   return {
@@ -221,6 +221,9 @@ function auditForModel(
   }
   if (format === "unknown") issues.push({ code: "unknown_layout", severity: "warning", message: "Model layout is not recognized; inspect files before deployment." });
   if (capabilities.includes("unknown")) issues.push({ code: "unknown_capability", severity: "info", message: "Model capability could not be inferred from config or file names." });
+  if (capabilities.includes("chat") && compatibility.chat?.status === "possible") {
+    issues.push({ code: "chat_template_unverified", severity: "warning", message: "Text generation is available, but no chat/instruct template was detected; use an instruct/chat model for agent workloads." });
+  }
   const gpu_memory = gpuMemoryAudit(format, sizeBytes, gpuMemory);
   if (gpu_memory.status === "insufficient") issues.push({ code: "gpu_memory_insufficient", severity: "warning", message: gpu_memory.reason });
   if (gpu_memory.status === "tight") issues.push({ code: "gpu_memory_tight", severity: "info", message: gpu_memory.reason });

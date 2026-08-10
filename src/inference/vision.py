@@ -23,7 +23,7 @@ MAX_IMAGE_SIZE = (1024, 1024)
 
 
 def load_pipeline(model_path: str, device: str = DEFAULT_DEVICE) -> ovg.VLMPipeline:
-    print(f"Loading VLM model on {device}...")
+    print(f"Loading {Path(model_path).name} on {device}...")
     t0 = time.time()
     pipe = ovg.VLMPipeline(model_path, device)
     print(f"  ✅ Loaded in {time.time() - t0:.1f}s")
@@ -192,7 +192,7 @@ def main():
             port=args.port,
             engine_name="vision",
             handle_chat=handler,
-            version="qwen25-vl-3b"
+            version=model_path.name.lower()
         )
         return
 

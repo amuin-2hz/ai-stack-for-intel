@@ -21,7 +21,7 @@ DEFAULT_DEVICE = "GPU"
 
 def load_model(model_path: str, device: str = DEFAULT_DEVICE) -> ovg.VLMPipeline:
     """Load Qwen3.5-2B as VLMPipeline (supports text-only + image input)."""
-    print(f"Loading Qwen3.5-2B on {device}...")
+    print(f"Loading {Path(model_path).name} on {device}...")
     t0 = time.time()
     pipe = ovg.VLMPipeline(str(model_path), device)
     print(f"  ✅ Loaded in {time.time() - t0:.1f}s")
@@ -220,7 +220,7 @@ def main():
             port=args.port,
             engine_name="chat",
             handle_chat=handler,
-            version="qwen35-2b"
+            version=model_path.name.lower()
         )
         return
 

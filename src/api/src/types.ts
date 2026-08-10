@@ -1,6 +1,6 @@
 export type CompatibilityStatus = "compatible" | "possible" | "needs_conversion" | "unsupported";
-export type ServiceType = "chat" | "vision" | "asr" | "tts" | "vllm" | "trtllm" | "pytorch" | "lmstudio";
-export type EngineType = "chat" | "vision" | "asr" | "tts";
+export type ServiceType = "chat" | "vision" | "asr" | "tts" | "embedding" | "rerank" | "vllm" | "trtllm" | "pytorch" | "lmstudio";
+export type EngineType = "chat" | "vision" | "asr" | "tts" | "embedding" | "rerank";
 export type EngineDevice = "NPU" | "GPU" | "CPU";
 
 export interface CompatibilityInfo {

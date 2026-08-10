@@ -3,7 +3,7 @@ export type View = 'home' | 'chat' | 'models' | 'engines' | 'settings';
 export type LegacyView = View | 'dashboard' | 'load' | 'running' | 'playground' | 'services' | 'deploy' | 'tasks';
 export type Locale = 'zh-CN' | 'en-US';
 export type ThemeMode = 'light' | 'dark';
-export type ServiceType = 'chat' | 'vision' | 'asr' | 'tts' | 'vllm' | 'trtllm' | 'pytorch';
+export type ServiceType = 'chat' | 'vision' | 'asr' | 'tts' | 'embedding' | 'rerank' | 'vllm' | 'trtllm' | 'pytorch';
 
 // Legacy container record for backward compat during migration
 export interface ContainerRecord {
@@ -30,7 +30,7 @@ export interface ContainerRecord {
 }
 
 /* ── inference engine types ─────────────────────── */
-export type EngineType = 'chat' | 'vision' | 'asr' | 'tts';
+export type EngineType = 'chat' | 'vision' | 'asr' | 'tts' | 'embedding' | 'rerank';
 export type EngineDevice = 'NPU' | 'GPU' | 'CPU';
 export type EngineStatus = 'stopped' | 'starting' | 'running' | 'error';
 
@@ -46,7 +46,7 @@ export interface EnginePreset {
 }
 
 export interface EngineRecord {
-  key: string;           // 'chat' | 'vision' | 'asr' | 'tts'
+  key: string;           // 'chat' | 'vision' | 'asr' | 'tts' | 'embedding' | 'rerank'
   type: EngineType;
   name: string;
   title: string;

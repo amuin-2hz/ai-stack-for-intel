@@ -14,7 +14,9 @@ export const servicePorts = {
   chat: Number(process.env.CHAT_ENGINE_PORT ?? "31000"),
   vision: Number(process.env.VISION_ENGINE_PORT ?? "31001"),
   asr: Number(process.env.ASR_ENGINE_PORT ?? "31002"),
-  tts: Number(process.env.TTS_ENGINE_PORT ?? "31003")
+  tts: Number(process.env.TTS_ENGINE_PORT ?? "31003"),
+  embedding: Number(process.env.EMBEDDING_ENGINE_PORT ?? "31004"),
+  rerank: Number(process.env.RERANK_ENGINE_PORT ?? "31005")
 };
 
 export async function systemCheck(): Promise<Record<string, unknown>> {

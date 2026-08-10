@@ -85,6 +85,14 @@ class InferenceRequestHandler(BaseHTTPRequestHandler):
                     return self.wfile.write(result)
                 return self._send_json(200, result)
 
+            if self.path == "/v1/embeddings" and _handlers.get("embeddings"):
+                result = _handlers["embeddings"](body)
+                return self._send_json(200, result)
+
+            if self.path in ("/v1/rerank", "/v3/rerank") and _handlers.get("rerank"):
+                result = _handlers["rerank"](body)
+                return self._send_json(200, result)
+
             self._send_json(404, {"detail": f"Endpoint not found: {self.path}"})
         except Exception:
             self._send_json(500, {
@@ -128,6 +136,8 @@ def start_server(
     handle_transcriptions: Optional[Callable] = None,
     handle_speech: Optional[Callable] = None,
     handle_vision: Optional[Callable] = None,
+    handle_embeddings: Optional[Callable] = None,
+    handle_rerank: Optional[Callable] = None,
     version: str = "0.1.0"
 ):
     """Create and start an HTTP inference server on the given port."""
@@ -142,6 +152,10 @@ def start_server(
         _handlers["speech"] = handle_speech
     if handle_vision:
         _handlers["vision"] = handle_vision
+    if handle_embeddings:
+        _handlers["embeddings"] = handle_embeddings
+    if handle_rerank:
+        _handlers["rerank"] = handle_rerank
 
     # Subclass to set engine metadata
     class Handler(InferenceRequestHandler):
@@ -155,6 +169,10 @@ def start_server(
     print(f"     Health: http://{host}:{port}/health")
     if handle_chat:
         print(f"     Chat:   http://{host}:{port}/v1/chat/completions")
+    if handle_embeddings:
+        print(f"     Embed:  http://{host}:{port}/v1/embeddings")
+    if handle_rerank:
+        print(f"     Rerank: http://{host}:{port}/v1/rerank")
 
     try:
         server.serve_forever()

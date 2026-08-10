@@ -65,6 +65,7 @@ export function createOpenAiProxy(deps: OpenAIProxyDeps) {
     // TTS can take up to 2 min for very long text; ASR/chat are quicker.
     const timeout = path.includes("speech") ? 120_000
                   : path.includes("transcriptions") ? 30_000
+                  : path.includes("embeddings") || path.includes("rerank") ? 60_000
                   : 60_000;
 
     const result = await proxyHttp(
@@ -98,7 +99,7 @@ export function createOpenAiProxy(deps: OpenAIProxyDeps) {
       const lowerId = modelId.toLowerCase();
       // Map engine-type keywords to capabilities
       const typeCaps: Record<string, string[]> = {
-        tts: ["tts"], asr: ["asr"], vision: ["vision"], chat: ["chat"]
+        tts: ["tts"], asr: ["asr"], vision: ["vision"], chat: ["chat"], embedding: ["embedding"], embeddings: ["embedding"], rerank: ["rerank"]
       };
       const targetCaps = typeCaps[lowerId];
       if (targetCaps) {
@@ -123,6 +124,8 @@ export function createOpenAiProxy(deps: OpenAIProxyDeps) {
     if (model.capabilities.includes("vision")) engineType = "vision";
     else if (model.capabilities.includes("asr")) engineType = "asr";
     else if (model.capabilities.includes("tts")) engineType = "tts";
+    else if (model.capabilities.includes("embedding")) engineType = "embedding";
+    else if (model.capabilities.includes("rerank")) engineType = "rerank";
 
     const preset = enginePresets.find((p) => p.type === engineType);
     if (!preset) return null;

@@ -20,6 +20,7 @@ export interface FormatMatchParams {
   names: Set<string>;
   configs: string[];
   config: Record<string, unknown>;
+  tokenizerConfig?: Record<string, unknown>;
 }
 
 /* ── detection helpers ────────────────────────────── */
@@ -162,9 +163,12 @@ export function detectCapabilities(params: FormatMatchParams): string[] {
     : "";
   const modelType = String(config.model_type ?? "").toLowerCase();
 
+  if (lower.includes("rerank") || lower.includes("reranker") || architectures.includes("reranker"))
+    return ["rerank"];
+
   if (lower.includes("embed") || architectures.includes("embedding") ||
     (modelType.includes("bert") && !architectures.includes("causallm")))
-    return ["embeddings"];
+    return ["embedding"];
 
   if (["vl", "vision", "multimodal", "qwen2_5_vl", "llava"].some(
     (t) => lower.includes(t) || modelType.includes(t) || architectures.includes(t)
@@ -187,16 +191,62 @@ export function detectCapabilities(params: FormatMatchParams): string[] {
 export function compatibilityForModel(
   format: string,
   capabilities: string[],
-  _configs: string[]
+  params?: FormatMatchParams
 ): Record<string, CompatibilityInfo> {
-  const engines = ["chat", "vision", "asr", "tts"] as const;
+  const engines = ["chat", "vision", "asr", "tts", "embedding", "rerank"] as const;
   const result: Record<string, CompatibilityInfo> = {};
+  const chatInstructionReady = hasChatInstructionSignal(params);
+  const experimentalQwen3Asr = hasExperimentalQwen3AsrLayout(params);
 
   for (const engine of engines) {
-    result[engine] = capabilities.includes(engine)
-      ? { status: "compatible", reason: `Model supports ${engine} inference via OpenVINO.` }
-      : { status: "unsupported", reason: `Model does not support ${engine}.` };
+    if (!capabilities.includes(engine)) {
+      result[engine] = { status: "unsupported", reason: `Model does not support ${engine}.` };
+      continue;
+    }
+
+    if (engine === "chat" && !chatInstructionReady) {
+      result[engine] = {
+        status: "possible",
+        reason: "Text-generation model detected, but no chat/instruct template was found; it can run raw generation, but is not agent-ready."
+      };
+      continue;
+    }
+
+    if (engine === "asr" && experimentalQwen3Asr) {
+      result[engine] = {
+        status: "compatible",
+        reason: "Qwen3-ASR thinker layout is supported through the isolated OpenVINO helper runtime."
+      };
+      continue;
+    }
+
+    result[engine] = { status: "compatible", reason: `Model supports ${engine} inference via OpenVINO.` };
   }
 
   return result;
+}
+
+function hasExperimentalQwen3AsrLayout(params?: FormatMatchParams): boolean {
+  if (!params) return false;
+  return params.files.some((file) => file.replace(/\\/g, "/").endsWith("thinker/openvino_thinker_language_model.xml"));
+}
+
+function hasChatInstructionSignal(params?: FormatMatchParams): boolean {
+  if (!params) return false;
+  if (params.names.has("chat_template.jinja")) return true;
+  const chatTemplate = params.tokenizerConfig?.chat_template;
+  if (typeof chatTemplate === "string" && chatTemplate.trim()) return true;
+  if (Array.isArray(chatTemplate) && chatTemplate.length > 0) return true;
+
+  const modelName = params.path.replace(/\\/g, "/").split("/").pop() ?? params.path;
+  const haystack = [
+    modelName,
+    params.config._name_or_path,
+    params.config.name_or_path,
+    params.config.model_name,
+    params.tokenizerConfig?._name_or_path,
+    params.tokenizerConfig?.name_or_path
+  ].map((value) => String(value ?? "").toLowerCase()).join(" ");
+
+  return /(^|[-_/.\s])(instruct|chat|assistant|it)([-_/.\s]|$)/.test(haystack);
 }

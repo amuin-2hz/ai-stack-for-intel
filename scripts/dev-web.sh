@@ -22,7 +22,7 @@ cleanup() {
   # Force-kill remaining (includes Python engines spawned by Node)
   kill -9 "${api_pid}" "${frontend_pid}" 2>/dev/null || true
   # Also kill any leftover Python inference processes on engine ports
-  for port in 31000 31001 31002 31003; do
+  for port in 31000 31001 31002 31003 31004 31005; do
     local pid
     pid=$(ss -tlnp 2>/dev/null | grep ":${port}" | grep -oP 'pid=\K\d+' | head -1) || true
     if [ -n "${pid}" ] && [ "${pid}" -gt 1 ]; then

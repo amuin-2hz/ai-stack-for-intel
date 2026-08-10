@@ -16,7 +16,7 @@ export function presetForKey(key: string): EnginePreset | undefined {
 }
 
 export const hiddenContainerNames = new Set<string>();
-export const modelRuntimePrefixes = ["chat_", "vision_", "asr_", "tts_"];
+export const modelRuntimePrefixes = ["chat_", "vision_", "asr_", "tts_", "embedding_", "rerank_"];
 
 export function isModelPublishingContainer(name: string): boolean {
   return modelRuntimePrefixes.some((p) => name.startsWith(p));

@@ -31,6 +31,18 @@ export function register(
     await oai.proxyOpenAiRequest(res, body, "/embeddings", rawBody);
   });
 
+  route("POST", "/v1/rerank", async (req: any, res: any) => {
+    const rawBody = await readRawBody(req);
+    const body = rawBody ? JSON.parse(rawBody) : {};
+    await oai.proxyOpenAiRequest(res, body, "/rerank", rawBody);
+  });
+
+  route("POST", "/v3/rerank", async (req: any, res: any) => {
+    const rawBody = await readRawBody(req);
+    const body = rawBody ? JSON.parse(rawBody) : {};
+    await oai.proxyOpenAiRequest(res, body, "/rerank", rawBody);
+  });
+
   route("POST", "/v1/audio/transcriptions", async (req: any, res: any) => {
     const contentType: string = req.headers["content-type"] || "";
 

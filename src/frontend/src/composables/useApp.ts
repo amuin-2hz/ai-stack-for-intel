@@ -184,7 +184,7 @@ export function formatBytes(value: number) { if (!value) return '0 B'; const uni
 export function badgeColor(status: string) { if (['compatible', 'ready', 'configured', 'running', 'succeeded'].includes(status)) return 'green'; if (['unsupported', 'incomplete', 'failed', 'missing', 'stopped', 'canceled', 'error'].includes(status)) return 'red'; if (['paused', 'canceling', 'starting'].includes(status)) return 'blue'; return 'gold'; }
 export function shortModelPath(path: string) { const marker = '/models/'; const index = path.lastIndexOf(marker); return index >= 0 ? '…' + path.slice(index) : path; }
 
-const INFERENCE_SERVICES: ServiceType[] = ['chat', 'vision', 'asr', 'tts'];
+const INFERENCE_SERVICES: ServiceType[] = ['chat', 'vision', 'asr', 'tts', 'embedding', 'rerank'];
 
 export function publicBaseUrl(deployment: DeploymentRecord) { const suffix = INFERENCE_SERVICES.includes(deployment.service_type as ServiceType) ? '/v1' : ''; return 'http://' + publicHost.value + ':' + deployment.public_port + suffix; }
 export function modelEndpoint(deployment: DeploymentRecord) { return publicBaseUrl(deployment) + '/models'; }

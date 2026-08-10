@@ -32,9 +32,19 @@ engines:
     model: Qwen3-TTS-0.6B-CustomVoice
     device: CPU        # qwen-tts PyTorch, no OpenVINO path
     port: 31003
+  embedding:
+    model: Qwen3-Embedding-0.6B-fp16-ov
+    device: GPU
+    port: 31004
+  rerank:
+    model: Qwen3-Reranker-0.6B-fp16-ov
+    device: GPU
+    port: 31005
 
 serving_notes:
   - "ASR audio_encoder (356MB) runs on NPU, thinker+decoder on CPU (dynamic shapes)"
+  - "Qwen3-ASR-1.7B thinker layout runs through the isolated helper runtime on GPU, with CPU fallback"
   - "LLM + VLM share GPU memory, total ~12.9GB"
   - "TTS uses qwen-tts PyTorch package — CPU only, no NPU/GPU path"
+  - "Embedding/Rerank use OpenVINO GenAI RAG pipelines on GPU, with CPU fallback"
   - "All engines fall back to CPU when preferred device is unavailable"

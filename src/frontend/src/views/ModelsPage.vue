@@ -26,7 +26,7 @@ const libraryCategory = ref('all');
 const activeModelId = ref('');
 const downloadDialogOpen = ref(false);
 
-const categories = ['Chat', 'Vision', 'ASR', 'TTS'];
+const categories = ['Chat', 'Vision', 'ASR', 'TTS', 'Embedding', 'Rerank'];
 const formatLabel = 'OpenVINO IR';
 
 function callableModelName(model: ModelRecord) {
@@ -39,7 +39,7 @@ const modelStorageBytes = computed(() =>
 );
 
 function modelCapabilities(model: ModelRecord) {
-  const capabilityNames: Record<string, string> = { chat: 'Chat', vision: 'Vision', asr: 'ASR', tts: 'TTS' };
+  const capabilityNames: Record<string, string> = { chat: 'Chat', vision: 'Vision', asr: 'ASR', tts: 'TTS', embedding: 'Embedding', rerank: 'Rerank' };
   const values = Object.entries(capabilityNames)
     .filter(([runtime]) => model.compatibility[runtime]?.status !== 'unsupported')
     .map(([, label]) => label);
@@ -174,7 +174,7 @@ async function publishModelFromCatalog(model: ModelRecord) {
   if (startingModelId.value) return;
   selectDeployModel(model);
 
-  const engineTypes = ['chat', 'vision', 'asr', 'tts'] as const;
+  const engineTypes = ['chat', 'vision', 'asr', 'tts', 'embedding', 'rerank'] as const;
   const preferred = model.runtime.preferred as string;
   const engineType = (engineTypes.includes(preferred as any) && model.compatibility[preferred]?.status !== 'unsupported')
     ? preferred
@@ -187,7 +187,7 @@ async function publishModelFromCatalog(model: ModelRecord) {
     return;
   }
 
-  const device = engineType === 'asr' ? 'NPU' : 'GPU';
+  const device = engineType === 'asr' ? 'NPU' : engineType === 'tts' ? 'CPU' : 'GPU';
   startingModelId.value = model.id;
 
   try {

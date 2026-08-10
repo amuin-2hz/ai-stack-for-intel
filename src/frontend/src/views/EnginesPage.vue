@@ -18,6 +18,8 @@ const engineLabels: Record<string, string> = {
   vision: 'VLM',
   asr: 'ASR',
   tts: 'TTS',
+  embedding: 'Embedding',
+  rerank: 'Rerank',
 };
 
 const engineDesc: Record<string, string> = {
@@ -25,6 +27,8 @@ const engineDesc: Record<string, string> = {
   vision: 'Vision Language Model',
   asr: 'Speech Recognition',
   tts: 'Text to Speech',
+  embedding: 'Text Embeddings',
+  rerank: 'Text Reranking',
 };
 
 const engineDevices: Record<string, 'CPU' | 'GPU' | 'NPU'> = {
@@ -32,6 +36,8 @@ const engineDevices: Record<string, 'CPU' | 'GPU' | 'NPU'> = {
   vision: 'GPU',
   asr: 'NPU',
   tts: 'CPU',
+  embedding: 'GPU',
+  rerank: 'GPU',
 };
 
 const enginePorts: Record<string, number> = {
@@ -39,6 +45,8 @@ const enginePorts: Record<string, number> = {
   vision: 31001,
   asr: 31002,
   tts: 31003,
+  embedding: 31004,
+  rerank: 31005,
 };
 
 type RuntimeSettings = {
@@ -70,6 +78,8 @@ const runtimeSettings = reactive<Record<string, RuntimeSettings>>({
   vision: defaultRuntimeSettings('vision'),
   asr: defaultRuntimeSettings('asr'),
   tts: defaultRuntimeSettings('tts'),
+  embedding: defaultRuntimeSettings('embedding'),
+  rerank: defaultRuntimeSettings('rerank'),
 });
 const runtimeSettingsStorageKey = 'localruntime.engineSettings.v1';
 

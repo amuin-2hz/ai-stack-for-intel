@@ -69,11 +69,20 @@ Electron 桌面壳
 | 视觉理解 | Qwen2.5-VL-3B | OpenVINO FP16 | GPU | https://modelscope.cn/models/amuin/Qwen2.5-VL-3B-fp16-ov |
 | 语音识别 | Qwen3-ASR-0.6B | OpenVINO INT8 | NPU / CPU | https://modelscope.cn/models/amuin/Qwen3-ASR-0.6B-int8-ov |
 | 语音合成 | Qwen3-TTS-0.6B CustomVoice | PyTorch CPU | CPU | https://modelscope.cn/models/amuin/Qwen3-TTS-0.6B-CustomVoice |
+| 对话可选 | Qwen3.5-4B | OpenVINO FP16 | GPU | https://huggingface.co/OpenVINO/Qwen3.5-4B-fp16-ov |
+| 视觉可选 | Qwen3-VL-4B-Instruct | OpenVINO INT4 | GPU | https://huggingface.co/Echo9Zulu/Qwen3-VL-4B-Instruct-int4_asym-ov |
+| 语音识别可选 | Qwen3-ASR-1.7B | OpenVINO INT8 | GPU / CPU | https://huggingface.co/jinhwan000/qwen3-asr-1.7b-ov-int8 |
+| 文本向量 | Qwen3-Embedding-0.6B | OpenVINO FP16 | GPU | https://huggingface.co/OpenVINO/Qwen3-Embedding-0.6B-fp16-ov |
+| 文本重排 | Qwen3-Reranker-0.6B | OpenVINO FP16 | GPU | https://huggingface.co/OpenVINO/Qwen3-Reranker-0.6B-fp16-ov |
+
+Qwen3-ASR-1.7B 使用隔离运行时，首次部署运行 `ops/scripts/setup-qwen3-asr-runtime.sh`。管理台选择该模型时会自动使用 GPU，GPU 不可用时回退到 CPU。
 
 ## 项目状态
 
-当前目标是交付 Linux Intel 版的本地 AI 桌面运行栈，并提供可发布的 `.deb` 包。已覆盖模型管理、四类推理引擎、管理台、下载任务和 OpenAI 兼容接口等主路径。
+当前目标是交付 Linux Intel 版的本地 AI 桌面运行栈，并提供可发布的 `.deb` 包。已覆盖模型管理、六类推理引擎、管理台、下载任务和 OpenAI 兼容接口等主路径。
 
 ## 许可证
 
 本项目源码采用 MIT License，详见 [LICENSE](LICENSE)。模型权重遵循对应模型仓库自身的许可证和使用条款。
+
+`src/inference/qwen_3_asr_helper.py` 来源于 OpenVINO Notebooks 固定提交 `69b0f57`，遵循 Apache-2.0 许可证。

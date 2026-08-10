@@ -65,7 +65,7 @@ export function register(
       (d: any) => d.service_type === serviceType
     );
     if (!deployment) return sendJson(res, 400, {
-      detail: `Unknown service type: ${serviceType}. Available: chat, vision, asr, tts`
+      detail: `Unknown service type: ${serviceType}. Available: chat, vision, asr, tts, embedding, rerank`
     });
 
     if (body.start) {
@@ -96,7 +96,7 @@ export function register(
       (d: any) => d.service_type === serviceType
     );
     if (!deployment) return sendJson(res, 400, {
-      detail: `Unknown service type: ${serviceType}. Available: chat, vision, asr, tts`
+      detail: `Unknown service type: ${serviceType}. Available: chat, vision, asr, tts, embedding, rerank`
     });
 
     // Check if already running

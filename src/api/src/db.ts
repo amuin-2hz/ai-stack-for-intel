@@ -96,6 +96,8 @@ export function initDb(): void {
     { key: "vision", engine_type: "vision", port: 31001, device: "GPU" },
     { key: "asr", engine_type: "asr", port: 31002, device: "NPU" },
     { key: "tts", engine_type: "tts", port: 31003, device: "GPU" },
+    { key: "embedding", engine_type: "embedding", port: 31004, device: "GPU" },
+    { key: "rerank", engine_type: "rerank", port: 31005, device: "GPU" },
   ];
   const insert = db.prepare(
     `INSERT OR IGNORE INTO engine_configs (key, engine_type, device, port, auto_start, updated_at)

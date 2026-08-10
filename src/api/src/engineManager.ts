@@ -7,12 +7,12 @@
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { access } from "node:fs/promises";
 import { runCommand } from "./utils.js";
 
 /* ── types ───────────────────────────────────────── */
-export type EngineType = "chat" | "vision" | "asr" | "tts";
+export type EngineType = "chat" | "vision" | "asr" | "tts" | "embedding" | "rerank";
 export type EngineDevice = "NPU" | "GPU" | "CPU";
 export type EngineStatus = "stopped" | "starting" | "running" | "error";
 
@@ -82,6 +82,26 @@ export const enginePresets: EnginePreset[] = [
     default_model: "Qwen3-TTS-0.6B-CustomVoice",
     model_keywords: ["tts", "qwen3-tts", "customvoice", "speech", "voice"],
     components: ["python", "torch", "qwen-tts"]
+  },
+  {
+    type: "embedding",
+    title: "Embedding",
+    script: "src/inference/embeddings.py",
+    default_port: 31004,
+    default_device: "GPU",
+    default_model: "Qwen3-Embedding-0.6B-fp16-ov",
+    model_keywords: ["embedding", "embed", "retrieval", "bge"],
+    components: ["python", "openvino", "openvino-genai"]
+  },
+  {
+    type: "rerank",
+    title: "Rerank",
+    script: "src/inference/rerank.py",
+    default_port: 31005,
+    default_device: "GPU",
+    default_model: "Qwen3-Reranker-0.6B-fp16-ov",
+    model_keywords: ["rerank", "reranker", "ranking", "cross-encoder"],
+    components: ["python", "openvino", "openvino-genai"]
   }
 ];
 
@@ -165,6 +185,7 @@ export async function resolveDevice(engineType: EngineType): Promise<EngineDevic
   // Residency plan: ASR→NPU (INT8, NPU 4 native), LLM/VLM→GPU, TTS→CPU (PyTorch, no NPU path)
   if (engineType === "asr" && devices.NPU) return "NPU";
   if (engineType === "tts") return "CPU";
+  if ((engineType === "embedding" || engineType === "rerank") && devices.GPU) return "GPU";
   if (devices.GPU) return "GPU";
   return "CPU";
 }
@@ -193,10 +214,37 @@ export async function startEngine(params: {
     await stopEngine(existing.id);
   }
 
-  const device = params.device ?? (await resolveDevice(params.type));
+  const resolvedModelPath = isAbsolute(params.model_path)
+    ? params.model_path
+    : join(params.workspaceRoot, params.model_path);
+  let qwen3AsrThinker = false;
+  if (params.type === "asr") {
+    try {
+      await access(join(resolvedModelPath, "thinker", "openvino_thinker_language_model.xml"));
+      qwen3AsrThinker = true;
+    } catch { /* stable ASR layout */ }
+  }
+
+  let device = params.device ?? (await resolveDevice(params.type));
+  if (qwen3AsrThinker && device === "NPU") {
+    const devices = await detectDevices();
+    device = devices.GPU ? "GPU" : "CPU";
+  }
+
   const port = params.port ?? preset.default_port;
   const id = randomId(params.type);
-  const scriptPath = join(params.workspaceRoot, preset.script);
+  const script = qwen3AsrThinker ? "src/inference/asr_qwen3.py" : preset.script;
+  const scriptPath = join(params.workspaceRoot, script);
+  const pythonExecutable = qwen3AsrThinker
+    ? join(params.workspaceRoot, ".venv", "qwen3-asr", "bin", "python")
+    : "python3";
+  if (qwen3AsrThinker) {
+    try {
+      await access(pythonExecutable);
+    } catch {
+      throw new Error("Qwen3-ASR runtime is not installed. Run ops/scripts/setup-qwen3-asr-runtime.sh first.");
+    }
+  }
   const modelsRoot = join(params.workspaceRoot, "models");
 
   const env: Record<string, string> = {
@@ -209,7 +257,7 @@ export async function startEngine(params: {
     ENGINE_MODEL_ID: params.model_id
   };
 
-  const child = spawn("python3", [
+  const child = spawn(pythonExecutable, [
     scriptPath,
     "--port", String(port),
     "--host", "127.0.0.1",
@@ -231,7 +279,7 @@ export async function startEngine(params: {
     port,
     pid: child.pid ?? null,
     status: "starting",
-    script: preset.script,
+    script,
     started_at: now(),
   };
 
