@@ -4,11 +4,11 @@
 devices:
   NPU:
     memory: 2GB
-    residents: [asr_encoder]     # ASR audio_encoder (356MB, static shape)
+    residents: [asr_encoder, embedding]  # ASR encoder + Qwen3 Embedding
     candidates: []
   GPU:
     memory: shared
-    residents: [llm, vlm]        # LLM (5.2GB) + VLM (7.7GB)
+    residents: [llm, vlm]        # LLM (5.2GB) + VLM (2.9GB)
     candidates: []
   CPU:
     memory: shared
@@ -21,7 +21,7 @@ engines:
     device: GPU
     port: 31000
   vision:
-    model: Qwen2.5-VL-3B-fp16-ov
+    model: Qwen3-VL-4B-Instruct-int4_asym-ov
     device: GPU
     port: 31001
   asr:
@@ -34,7 +34,7 @@ engines:
     port: 31003
   embedding:
     model: Qwen3-Embedding-0.6B-fp16-ov
-    device: GPU
+    device: NPU
     port: 31004
   rerank:
     model: Qwen3-Reranker-0.6B-fp16-ov
@@ -44,7 +44,8 @@ engines:
 serving_notes:
   - "ASR audio_encoder (356MB) runs on NPU, thinker+decoder on CPU (dynamic shapes)"
   - "Qwen3-ASR-1.7B thinker layout runs through the isolated helper runtime on GPU, with CPU fallback"
-  - "LLM + VLM share GPU memory, total ~12.9GB"
+  - "LLM + VLM share GPU memory, total ~8.1GB"
   - "TTS uses qwen-tts PyTorch package — CPU only, no NPU/GPU path"
-  - "Embedding/Rerank use OpenVINO GenAI RAG pipelines on GPU, with CPU fallback"
+  - "Embedding uses the OpenVINO GenAI RAG pipeline on NPU, with GPU/CPU fallback"
+  - "Rerank uses the OpenVINO GenAI RAG pipeline on GPU, with CPU fallback"
   - "All engines fall back to CPU when preferred device is unavailable"

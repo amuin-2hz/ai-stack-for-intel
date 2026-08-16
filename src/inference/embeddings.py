@@ -3,7 +3,7 @@ Text Embeddings — OpenVINO GenAI TextEmbeddingPipeline
 
 Usage:
   python embeddings.py --prompt "hello"
-  python embeddings.py --port 31004 --device GPU --model-path models/Qwen3-Embedding-0.6B-fp16-ov
+  python embeddings.py --port 31004 --device NPU --model-path models/Qwen3-Embedding-0.6B-fp16-ov
 """
 import argparse
 import time
@@ -13,7 +13,7 @@ import numpy as np
 import openvino_genai as ovg
 
 DEFAULT_MODEL_PATH = "models/Qwen3-Embedding-0.6B-fp16-ov"
-DEFAULT_DEVICE = "GPU"
+DEFAULT_DEVICE = "NPU"
 
 
 def _to_vector(value) -> list[float]:

@@ -26,7 +26,7 @@ function startApiServer(): void {
         PORT: String(API_PORT),
         FRONTEND_PORT: String(FRONTEND_PORT),
         AI_STACK_BASE: root,
-        MODELS_ROOT: join(root, "models"),
+        MODELS_ROOT: process.env.MODELS_ROOT ?? join(root, "models"),
         AI_STACK_BIND_ADDR: "127.0.0.1",
       },
       stdio: "pipe",
@@ -41,7 +41,7 @@ function startApiServer(): void {
           PORT: String(API_PORT),
           FRONTEND_PORT: String(FRONTEND_PORT),
           AI_STACK_BASE: root,
-          MODELS_ROOT: join(root, "models"),
+          MODELS_ROOT: process.env.MODELS_ROOT ?? join(root, "models"),
           AI_STACK_BIND_ADDR: "127.0.0.1",
         },
         stdio: "pipe",
@@ -126,8 +126,9 @@ function setupCSP(): void {
   });
 }
 
-// Allow running without SUID sandbox
-app.commandLine.appendSwitch("no-sandbox");
+if (process.env.ELECTRON_DISABLE_SANDBOX === "1") {
+  app.commandLine.appendSwitch("no-sandbox");
+}
 
 // Handle headless/SSH environments
 const display = process.env.DISPLAY ?? "";

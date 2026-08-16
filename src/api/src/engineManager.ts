@@ -59,7 +59,7 @@ export const enginePresets: EnginePreset[] = [
     script: "src/inference/vision.py",
     default_port: 31001,
     default_device: "GPU",
-    default_model: "Qwen2.5-VL-3B-fp16-ov",
+    default_model: "Qwen3-VL-4B-Instruct-int4_asym-ov",
     model_keywords: ["vision", "vl", "vlm", "multimodal"],
     components: ["python", "openvino", "openvino-genai"]
   },
@@ -88,7 +88,7 @@ export const enginePresets: EnginePreset[] = [
     title: "Embedding",
     script: "src/inference/embeddings.py",
     default_port: 31004,
-    default_device: "GPU",
+    default_device: "NPU",
     default_model: "Qwen3-Embedding-0.6B-fp16-ov",
     model_keywords: ["embedding", "embed", "retrieval", "bge"],
     components: ["python", "openvino", "openvino-genai"]
@@ -182,10 +182,10 @@ export async function detectDevices(): Promise<{ NPU: boolean; GPU: boolean; CPU
 /** Resolve the best available device for an engine type using residency plan */
 export async function resolveDevice(engineType: EngineType): Promise<EngineDevice> {
   const devices = await detectDevices();
-  // Residency plan: ASR→NPU (INT8, NPU 4 native), LLM/VLM→GPU, TTS→CPU (PyTorch, no NPU path)
+  // Residency plan: ASR/Embedding→NPU, LLM/VLM/Rerank→GPU, TTS→CPU.
   if (engineType === "asr" && devices.NPU) return "NPU";
+  if (engineType === "embedding" && devices.NPU) return "NPU";
   if (engineType === "tts") return "CPU";
-  if ((engineType === "embedding" || engineType === "rerank") && devices.GPU) return "GPU";
   if (devices.GPU) return "GPU";
   return "CPU";
 }
@@ -236,7 +236,7 @@ export async function startEngine(params: {
   const script = qwen3AsrThinker ? "src/inference/asr_qwen3.py" : preset.script;
   const scriptPath = join(params.workspaceRoot, script);
   const pythonExecutable = qwen3AsrThinker
-    ? join(params.workspaceRoot, ".venv", "qwen3-asr", "bin", "python")
+    ? process.env.QWEN3_ASR_PYTHON ?? join(params.workspaceRoot, ".venv", "qwen3-asr", "bin", "python")
     : "python3";
   if (qwen3AsrThinker) {
     try {

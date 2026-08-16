@@ -74,12 +74,12 @@ def bench_llm(device="CPU"):
 def bench_vlm(device="CPU"):
     """Benchmark VLM image understanding."""
     print("\n" + "=" * 60)
-    print("🖼️  VLM: Qwen2.5-VL-3B FP16")
+    print("🖼️  VLM: Qwen3-VL-4B INT4")
     print("=" * 60)
 
     from PIL import Image
 
-    model_path = "models/Qwen2.5-VL-3B-fp16-ov"
+    model_path = "models/Qwen3-VL-4B-Instruct-int4_asym-ov"
     if not Path(model_path).exists():
         print("  SKIP — model not found")
         return None
@@ -113,7 +113,7 @@ def bench_vlm(device="CPU"):
         print(f"  {label}: {elapsed:.1f}s, {len(text)} chars — {text[:60]}...")
 
     print(f"  Load time: {load_time:.1f}s")
-    return {"model": "Qwen2.5-VL-3B FP16", "device": device, "load_time": load_time, "details": results}
+    return {"model": "Qwen3-VL-4B INT4", "device": device, "load_time": load_time, "details": results}
 
 
 # --- TTS Benchmark ---

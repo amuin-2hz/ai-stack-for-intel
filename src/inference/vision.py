@@ -1,5 +1,5 @@
 """
-VLM Vision — Qwen2.5-VL-3B FP16 (OpenVINO)
+VLM Vision — Qwen3-VL-4B-Instruct INT4 (OpenVINO)
 Supports image understanding via VLMPipeline.
 
 Usage:
@@ -17,7 +17,7 @@ import openvino as ov
 import openvino_genai as ovg
 from PIL import Image
 
-DEFAULT_MODEL_PATH = "models/Qwen2.5-VL-3B-fp16-ov"
+DEFAULT_MODEL_PATH = "models/Qwen3-VL-4B-Instruct-int4_asym-ov"
 DEFAULT_DEVICE = "GPU"
 MAX_IMAGE_SIZE = (1024, 1024)
 
@@ -56,7 +56,7 @@ def describe(pipe: ovg.VLMPipeline, image_path: str, prompt: str = "请详细描
 def interactive(pipe: ovg.VLMPipeline):
     """Interactive vision session."""
     print("\n" + "=" * 60)
-    print("🖼️  Qwen2.5-VL-3B Vision")
+    print("🖼️  Qwen3-VL-4B Vision")
     print("   Enter image path to describe. Type 'exit' to quit.")
     print("=" * 60)
 
@@ -87,7 +87,7 @@ def create_vision_handler(pipe: ovg.VLMPipeline):
 
     def handle(request: dict) -> dict:
         messages = request.get("messages", [])
-        model = request.get("model", "qwen25-vl-3b")
+        model = request.get("model", "qwen3-vl-4b")
         max_tokens = request.get("max_tokens", 256)
         stream = request.get("stream", False)
 
@@ -161,7 +161,7 @@ def create_vision_handler(pipe: ovg.VLMPipeline):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Qwen2.5-VL-3B Vision")
+    parser = argparse.ArgumentParser(description="Qwen3-VL-4B Vision")
     parser.add_argument("--image", "-i", default=None, help="Image file to describe")
     parser.add_argument("--prompt", "-p", default="请详细描述这张图片的内容。")
     parser.add_argument("--max-tokens", type=int, default=256)
