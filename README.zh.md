@@ -1,3 +1,5 @@
+[English](README.md)
+
 # Amuin AI Stack
 
 > 面向 Linux Intel 设备的本地多模态 AI 桌面运行栈
