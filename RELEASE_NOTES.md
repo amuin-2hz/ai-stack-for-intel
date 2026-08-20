@@ -8,6 +8,8 @@
 - 修复 WebSocket 代理重复转发音频帧的问题。
 - 修复 NPU Embedding 批量输入失败，批处理不受支持时自动逐条推理。
 - 完成 Ubuntu 26.04、OpenVINO 2026.2.1，以及 Intel CPU/GPU/NPU 的运行验证。
+- 新增原生 RPM 安装包，面向 Fedora、RHEL 兼容发行版和 openEuler `x86_64`。
+- RPM 元数据和依赖解析已通过 Fedora 44、Rocky Linux 10 和 openEuler 24.03 LTS 验证。
 
 ## 主要功能
 
@@ -22,6 +24,7 @@
 ## 安装文件
 
 - `amuin-ai-stack_0.2.1_amd64.deb`
+- `amuin-ai-stack-0.2.1-1.x86_64.rpm`
 - `SHA256SUMS`
 - `RELEASE_NOTES.md`
 
@@ -33,4 +36,4 @@
 - 首次启动前请运行 `/opt/amuin-ai-stack/ops/scripts/setup-runtime.sh`。
 - TTS 依赖需要使用 `setup-runtime.sh --with-tts` 单独安装。
 - NPU/GPU 加速依赖主机已正确安装 Intel 驱动和固件。
-- 本版只提供 `amd64` Debian 安装包。
+- 本版同时提供 `amd64` Debian 安装包和 `x86_64` RPM 安装包。

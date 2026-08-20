@@ -16,7 +16,10 @@
     "start": "node src/api/dist/server.js",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder",
-    "deb": "./scripts/build-deb.sh"
+    "deb": "./scripts/build-deb.sh",
+    "rpm": "./scripts/build-rpm.sh",
+    "rpm:docker": "./scripts/build-rpm-docker.sh",
+    "release": "./scripts/build-release.sh"
   },
   "build": {
     "appId": "ai.amuin.stack",

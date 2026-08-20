@@ -4,7 +4,7 @@
 
 > 面向 Linux Intel 设备的本地多模态 AI 桌面运行栈
 
-Amuin AI Stack 将桌面管理台、模型管理、OpenAI 兼容 API 与 OpenVINO 推理引擎整合在一个 `.deb` 安装包中，可在本机运行对话、视觉理解、语音识别、语音合成、文本向量和文本重排能力。
+Amuin AI Stack 将桌面管理台、模型管理、OpenAI 兼容 API 与 OpenVINO 推理引擎整合为原生 `.deb` 和 `.rpm` 安装包，可在本机运行对话、视觉理解、语音识别、语音合成、文本向量和文本重排能力。
 
 当前发布面向 Intel Core Ultra 平台和 `amd64` Linux。模型权重不包含在安装包中，安装后可在管理台中按需下载和启动。
 
@@ -33,21 +33,22 @@ Amuin AI Stack 将桌面管理台、模型管理、OpenAI 兼容 API 与 OpenVIN
 
 ## 发布包
 
-每个版本提供以下三个文件：
+每个版本同时提供两种 Linux 安装包和校验文件：
 
 ```text
 amuin-ai-stack_0.2.1_amd64.deb
+amuin-ai-stack-0.2.1-1.x86_64.rpm
 SHA256SUMS
 RELEASE_NOTES.md
 ```
 
-`.deb` 包含桌面应用、管理 API 和 Python 推理入口，不包含模型权重。安装包约 100 MB；模型下载后需要额外磁盘空间。
+两种安装包包含相同的桌面应用、管理 API 和 Python 推理入口，均不包含模型权重。单个安装包约 100 MB；模型下载后需要额外磁盘空间。
 
 ## 系统要求
 
 | 项目 | 要求 |
 | --- | --- |
-| 操作系统 | Ubuntu 22.04 / 24.04 / 26.04 或兼容的 Debian 系发行版 |
+| 操作系统 | Ubuntu/Debian、Fedora、RHEL 兼容发行版或 openEuler |
 | 架构 | `amd64` / `x86_64` |
 | CPU | Intel Core Ultra，其他 x86_64 CPU 可使用 CPU 回退 |
 | 内存 | 最低 16 GB，推荐 32 GB |
@@ -57,9 +58,11 @@ RELEASE_NOTES.md
 
 已验证硬件为 Intel Core Ultra 7 258V、Intel Graphics 和 Intel AI Boost NPU。没有兼容 NPU 或 GPU 时，部分引擎可以回退到 CPU，但性能会明显下降。
 
+软件包元数据和依赖解析已在 Fedora 44、Rocky Linux 10 和 openEuler 24.03 LTS 容器中验证。Intel GPU/NPU 运行时加速已在 Ubuntu 26.04 实机验证；其他发行版仍需提供兼容的厂商驱动和固件。
+
 ## 安装
 
-将 `.deb`、`SHA256SUMS` 和 `RELEASE_NOTES.md` 放在同一目录。
+将对应平台的安装包和 `SHA256SUMS` 放在同一目录。
 
 1. 校验安装包：
 
@@ -67,11 +70,19 @@ RELEASE_NOTES.md
 sha256sum -c SHA256SUMS
 ```
 
-2. 安装应用：
+2. 在 Ubuntu/Debian 上安装：
 
 ```bash
 sudo apt install ./amuin-ai-stack_0.2.1_amd64.deb
 ```
+
+在 Fedora、RHEL 兼容发行版或 openEuler 上安装：
+
+```bash
+sudo dnf install ./amuin-ai-stack-0.2.1-1.x86_64.rpm
+```
+
+FFmpeg 和 SoX 是推荐的多媒体依赖。Fedora 会通过 `ffmpeg-free` 提供 FFmpeg；RHEL 兼容系统可能需要额外启用多媒体软件源，才能获得完整的音频格式支持。
 
 3. 以普通用户身份准备 OpenVINO 运行环境：
 
@@ -95,7 +106,7 @@ amuin-ai-stack
 
 ### 安装后准备模型
 
-安装 `.deb` 并执行一次 `setup-runtime.sh` 后，普通 OpenVINO 模型只需要以完整目录形式放入当前用户的模型目录：
+安装任一种软件包并执行一次 `setup-runtime.sh` 后，普通 OpenVINO 模型只需要以完整目录形式放入当前用户的模型目录：
 
 ```text
 ~/.local/share/amuin-ai-stack/models/<模型目录名>/
@@ -119,7 +130,20 @@ amuin-ai-stack
 | Qwen3-TTS | 使用 `setup-runtime.sh --with-tts` 安装额外依赖 |
 | GPU / NPU 加速 | 主机需要提前安装相应的 Intel 驱动和固件 |
 
-`.deb` 不包含模型权重，也不会安装 Intel 内核驱动或 NPU 固件。
+安装包不包含模型权重，也不会安装 Intel 内核驱动或 NPU 固件。
+
+### 构建发行包
+
+可在 Debian/Ubuntu 上构建 DEB，在 RPM 系构建机上构建 RPM，或通过可复现的 Fedora 容器同时构建两种格式：
+
+```bash
+npm run deb
+npm run rpm
+npm run rpm:docker
+npm run release
+```
+
+`npm run release` 会将两种安装包、统一的 `SHA256SUMS` 和 `RELEASE_NOTES.md` 输出到 `dist-release/`。本机存在 `rpmbuild` 时直接使用，否则自动使用 Docker。
 
 ## 数据目录
 
@@ -240,11 +264,19 @@ curl http://127.0.0.1:8000/v1/audio/transcriptions \
 sudo apt install ./amuin-ai-stack_NEW_VERSION_amd64.deb
 ```
 
+在 RPM 系发行版上：
+
+```bash
+sudo dnf upgrade ./amuin-ai-stack-NEW_VERSION-1.x86_64.rpm
+```
+
 卸载应用：
 
 ```bash
 sudo apt remove amuin-ai-stack
 ```
+
+在 RPM 系发行版上使用 `sudo dnf remove amuin-ai-stack`。
 
 如需同时删除模型和运行数据，可在确认无用后手动删除：
 
@@ -254,7 +286,7 @@ rm -rf ~/.local/share/amuin-ai-stack
 
 ## 已知限制
 
-- 当前仅发布 `amd64` Debian 安装包。
+- RPM 安装包面向 Fedora、RHEL 兼容发行版和 openEuler `x86_64`；加速能力仍取决于各发行版提供的 Intel 驱动和固件。
 - 模型权重需要安装后单独下载。
 - NPU 功能依赖主机驱动和固件，不能仅靠安装包提供。
 - Qwen3-ASR-1.7B 和 Qwen3-Reranker-0.6B 的动态模型图目前不适合 NPU，默认运行在 GPU。

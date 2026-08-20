@@ -4,7 +4,7 @@
 
 > Local multimodal AI desktop runtime for Linux Intel devices — chat, vision, speech, embeddings & rerank, all on-device.
 
-Amuin AI Stack bundles a desktop manager, model management, an OpenAI-compatible API and OpenVINO inference engines into a single `.deb` package. It runs chat, vision understanding, speech recognition, speech synthesis, text embeddings and text reranking entirely on your machine.
+Amuin AI Stack bundles a desktop manager, model management, an OpenAI-compatible API and OpenVINO inference engines into native `.deb` and `.rpm` packages. It runs chat, vision understanding, speech recognition, speech synthesis, text embeddings and text reranking entirely on your machine.
 
 The current release targets Intel Core Ultra platforms and `amd64` Linux. Model weights are not bundled; after installing, download them on demand from the manager console.
 
@@ -33,21 +33,22 @@ In minutes, you get a turnkey local AI environment on your own Intel laptop: tex
 
 ## Release Package
 
-Each release ships three files:
+Each release ships both Linux package formats and their verification files:
 
 ```text
 amuin-ai-stack_0.2.1_amd64.deb
+amuin-ai-stack-0.2.1-1.x86_64.rpm
 SHA256SUMS
 RELEASE_NOTES.md
 ```
 
-The `.deb` bundles the desktop app, the management API and the Python inference entrypoints — no model weights. The package is ~100 MB; downloaded models need extra disk space.
+Both packages contain the same desktop app, management API and Python inference entrypoints — no model weights. Each package is ~100 MB; downloaded models need extra disk space.
 
 ## System Requirements
 
 | Item | Requirement |
 | --- | --- |
-| OS | Ubuntu 22.04 / 24.04 / 26.04 or compatible Debian-based distro |
+| OS | Ubuntu/Debian, Fedora, RHEL-compatible distributions, or openEuler |
 | Arch | `amd64` / `x86_64` |
 | CPU | Intel Core Ultra; other x86_64 CPUs use CPU fallback |
 | RAM | 16 GB min, 32 GB recommended |
@@ -57,9 +58,11 @@ The `.deb` bundles the desktop app, the management API and the Python inference 
 
 Verified on Intel Core Ultra 7 258V with Intel Graphics and Intel AI Boost NPU. Without a compatible NPU or GPU, some engines fall back to CPU (slower).
 
+Package metadata and dependency resolution are validated on Fedora 44, Rocky Linux 10, and openEuler 24.03 LTS containers. Intel GPU/NPU runtime acceleration is hardware-validated on Ubuntu 26.04; other distributions still require compatible vendor drivers and firmware.
+
 ## Install
 
-Put the `.deb`, `SHA256SUMS` and `RELEASE_NOTES.md` in the same directory.
+Put your platform package and `SHA256SUMS` in the same directory.
 
 1. Verify the package:
 
@@ -67,11 +70,19 @@ Put the `.deb`, `SHA256SUMS` and `RELEASE_NOTES.md` in the same directory.
 sha256sum -c SHA256SUMS
 ```
 
-2. Install:
+2. Install on Ubuntu/Debian:
 
 ```bash
 sudo apt install ./amuin-ai-stack_0.2.1_amd64.deb
 ```
+
+Or install on Fedora, RHEL-compatible distributions, and openEuler:
+
+```bash
+sudo dnf install ./amuin-ai-stack-0.2.1-1.x86_64.rpm
+```
+
+FFmpeg and SoX are recommended multimedia dependencies. Fedora resolves FFmpeg through `ffmpeg-free`; RHEL-compatible systems may require an additional multimedia repository for full audio-format support.
 
 3. Prepare the OpenVINO runtime as a normal user:
 
@@ -95,7 +106,7 @@ On first launch, download models from the **Models** page, then pick a model and
 
 ### Prepare Models After Install
 
-After installing the `.deb` and running `setup-runtime.sh` once, ordinary OpenVINO models just need to be placed as a complete directory under your user model directory:
+After installing either package and running `setup-runtime.sh` once, ordinary OpenVINO models just need to be placed as a complete directory under your user model directory:
 
 ```text
 ~/.local/share/amuin-ai-stack/models/<model-dir>/
@@ -119,7 +130,20 @@ Extra setup per feature:
 | Qwen3-TTS | Install extra deps via `setup-runtime.sh --with-tts` |
 | GPU / NPU acceleration | Install the matching Intel drivers and firmware first |
 
-The `.deb` does not bundle model weights, nor does it install Intel kernel drivers or NPU firmware.
+The packages do not bundle model weights, nor do they install Intel kernel drivers or NPU firmware.
+
+### Build release packages
+
+Build a DEB on Debian/Ubuntu, an RPM on an RPM-based build host, or both through the reproducible Fedora container:
+
+```bash
+npm run deb
+npm run rpm
+npm run rpm:docker
+npm run release
+```
+
+`npm run release` writes the two packages, a combined `SHA256SUMS`, and `RELEASE_NOTES.md` to `dist-release/`. It uses local `rpmbuild` when available and otherwise uses Docker.
 
 ## Data Directory
 
@@ -238,11 +262,19 @@ Installing a new version keeps models, state and logs in your user directory:
 sudo apt install ./amuin-ai-stack_NEW_VERSION_amd64.deb
 ```
 
+On an RPM-based distribution:
+
+```bash
+sudo dnf upgrade ./amuin-ai-stack-NEW_VERSION-1.x86_64.rpm
+```
+
 Uninstall:
 
 ```bash
 sudo apt remove amuin-ai-stack
 ```
+
+On an RPM-based distribution, use `sudo dnf remove amuin-ai-stack`.
 
 To also remove models and runtime data, delete them manually after confirming they are no longer needed:
 
@@ -252,7 +284,7 @@ rm -rf ~/.local/share/amuin-ai-stack
 
 ## Known Limitations
 
-- Currently ships `amd64` Debian packages only.
+- The RPM package targets Fedora, RHEL-compatible distributions, and openEuler on `x86_64`; accelerator support still depends on each distribution's Intel drivers and firmware.
 - Model weights must be downloaded separately after install.
 - NPU features depend on host drivers and firmware, not just the package.
 - Qwen3-ASR-1.7B and Qwen3-Reranker-0.6B dynamic graphs are not NPU-suitable yet and default to GPU.

@@ -13,6 +13,8 @@ src/*/dist/
 dist/
 dist-electron/
 dist-deb/
+dist-rpm/
+dist-release/
 *.deb
 *.AppImage
 *.rpm
