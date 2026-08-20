@@ -36,7 +36,7 @@ Amuin AI Stack 将桌面管理台、模型管理、OpenAI 兼容 API 与 OpenVIN
 每个版本提供以下三个文件：
 
 ```text
-amuin-ai-stack_0.2.0_amd64.deb
+amuin-ai-stack_0.2.1_amd64.deb
 SHA256SUMS
 RELEASE_NOTES.md
 ```
@@ -47,7 +47,7 @@ RELEASE_NOTES.md
 
 | 项目 | 要求 |
 | --- | --- |
-| 操作系统 | Ubuntu 22.04 / 24.04 或兼容的 Debian 系发行版 |
+| 操作系统 | Ubuntu 22.04 / 24.04 / 26.04 或兼容的 Debian 系发行版 |
 | 架构 | `amd64` / `x86_64` |
 | CPU | Intel Core Ultra，其他 x86_64 CPU 可使用 CPU 回退 |
 | 内存 | 最低 16 GB，推荐 32 GB |
@@ -70,7 +70,7 @@ sha256sum -c SHA256SUMS
 2. 安装应用：
 
 ```bash
-sudo apt install ./amuin-ai-stack_0.2.0_amd64.deb
+sudo apt install ./amuin-ai-stack_0.2.1_amd64.deb
 ```
 
 3. 以普通用户身份准备 OpenVINO 运行环境：

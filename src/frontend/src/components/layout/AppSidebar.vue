@@ -38,7 +38,7 @@ function go(path: string) {
         <strong>{{ t('workstation') }}</strong>
         <span>{{ t('studioName') }}</span>
       </div>
-      <span class="sideNavVersion">v0.2.0</span>
+      <span class="sideNavVersion">v0.2.1</span>
     </div>
 
     <nav class="sideNavMenu" aria-label="Main menu">

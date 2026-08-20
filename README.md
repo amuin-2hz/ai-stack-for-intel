@@ -36,7 +36,7 @@ In minutes, you get a turnkey local AI environment on your own Intel laptop: tex
 Each release ships three files:
 
 ```text
-amuin-ai-stack_0.2.0_amd64.deb
+amuin-ai-stack_0.2.1_amd64.deb
 SHA256SUMS
 RELEASE_NOTES.md
 ```
@@ -47,7 +47,7 @@ The `.deb` bundles the desktop app, the management API and the Python inference 
 
 | Item | Requirement |
 | --- | --- |
-| OS | Ubuntu 22.04 / 24.04 or compatible Debian-based distro |
+| OS | Ubuntu 22.04 / 24.04 / 26.04 or compatible Debian-based distro |
 | Arch | `amd64` / `x86_64` |
 | CPU | Intel Core Ultra; other x86_64 CPUs use CPU fallback |
 | RAM | 16 GB min, 32 GB recommended |
@@ -70,7 +70,7 @@ sha256sum -c SHA256SUMS
 2. Install:
 
 ```bash
-sudo apt install ./amuin-ai-stack_0.2.0_amd64.deb
+sudo apt install ./amuin-ai-stack_0.2.1_amd64.deb
 ```
 
 3. Prepare the OpenVINO runtime as a normal user:

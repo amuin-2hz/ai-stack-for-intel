@@ -1,6 +1,6 @@
 {
   "name": "amuin-ai-stack",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Amuin AI Stack for Linux Intel - on-device LLM + Vision + ASR + TTS",
   "license": "MIT",
   "private": true,

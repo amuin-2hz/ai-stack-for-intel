@@ -8,7 +8,7 @@ import type { ServerResponse } from "node:http";
 import { createDeploymentHelpers } from "./deploymentHelpers.js";
 import { startEngine, listEngines, enginePresets, type EngineType } from "./engineManager.js";
 import { getModel, listModels } from "./modelRegistry.js";
-import { proxyHttp } from "./httpProxy.js";
+import { proxyHttp, requestAudioWebSocket } from "./httpProxy.js";
 
 export interface OpenAIProxyDeps {
   modelsRoot: string;
@@ -56,17 +56,33 @@ export function createOpenAiProxy(deps: OpenAIProxyDeps) {
     // Use raw body if available (preserves exact JSON), otherwise re-stringify
     const requestBody = rawBody ?? JSON.stringify(body);
 
-    // Stream SSE if requested
-    if (body.stream === true) {
-      return proxyStreamRaw(res, baseUrl + path, requestBody);
-    }
-
     // Pick a timeout appropriate for the endpoint:
     // TTS can take up to 2 min for very long text; ASR/chat are quicker.
     const timeout = path.includes("speech") ? 120_000
                   : path.includes("transcriptions") ? 30_000
                   : path.includes("embeddings") || path.includes("rerank") ? 60_000
                   : 60_000;
+
+    if (path === "/audio/transcriptions" || path === "/audio/speech") {
+      const mode = path === "/audio/speech" ? "speech" : "transcription";
+      const result = await requestAudioWebSocket(
+        `ws://127.0.0.1:${engine.port}/v1${path}`,
+        body,
+        mode,
+        timeout
+      );
+      res.writeHead(result.status, {
+        "content-type": result.contentType || "application/json; charset=utf-8",
+        "access-control-allow-origin": "*"
+      });
+      res.end(result.body);
+      return;
+    }
+
+    // Stream SSE if requested by text-generation endpoints.
+    if (body.stream === true) {
+      return proxyStreamRaw(res, baseUrl + path, requestBody);
+    }
 
     const result = await proxyHttp(
       "POST",

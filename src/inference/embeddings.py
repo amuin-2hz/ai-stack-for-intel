@@ -52,7 +52,18 @@ def load_pipeline(model_path: str, device: str = DEFAULT_DEVICE):
 
 def embed(pipe, texts: list[str], model: str) -> dict:
     t0 = time.time()
-    vectors = _to_vectors(pipe.embed_documents(texts))
+    try:
+        vectors = _to_vectors(pipe.embed_documents(texts))
+    except RuntimeError:
+        if len(texts) <= 1:
+            raise
+        # Some NPU plugin versions only accept a single padded sequence per
+        # inference request. Preserve OpenAI batch semantics by issuing one
+        # request per input when native batching isn't supported.
+        print("  Batch embedding is unavailable on this device; falling back to single-item requests")
+        vectors = []
+        for text in texts:
+            vectors.extend(_to_vectors(pipe.embed_documents([text])))
     elapsed = time.time() - t0
     return {
         "object": "list",

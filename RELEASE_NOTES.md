@@ -1,8 +1,15 @@
-# Amuin AI Stack 0.2.0
+# Amuin AI Stack 0.2.1
 
 发布日期：2026-08
 
-## 本版内容
+## 本版修复
+
+- 修复 OpenAI 兼容的 ASR/TTS HTTP 接口与 WebSocket 推理引擎之间的协议桥接。
+- 修复 WebSocket 代理重复转发音频帧的问题。
+- 修复 NPU Embedding 批量输入失败，批处理不受支持时自动逐条推理。
+- 完成 Ubuntu 26.04、OpenVINO 2026.2.1，以及 Intel CPU/GPU/NPU 的运行验证。
+
+## 主要功能
 
 - 提供 Linux Intel `amd64` 桌面管理应用和本地 OpenAI 兼容 API。
 - 推理运行时升级到 OpenVINO 2026.2.1 稳定版。
@@ -14,7 +21,7 @@
 
 ## 安装文件
 
-- `amuin-ai-stack_0.2.0_amd64.deb`
+- `amuin-ai-stack_0.2.1_amd64.deb`
 - `SHA256SUMS`
 - `RELEASE_NOTES.md`
 
