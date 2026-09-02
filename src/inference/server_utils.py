@@ -1,4 +1,6 @@
 """
+Author: zhenz
+
 Shared HTTP server utilities for inference scripts.
 Provides a lightweight JSON HTTP server with health endpoint,
 used by chat, vision, asr, and tts scripts when --port is provided.
@@ -7,11 +9,28 @@ used by chat, vision, asr, and tts scripts when --port is provided.
 import json
 import os
 import traceback
+import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import Callable, Optional
 
 # Module-level handler registry — avoids Python treating class attributes as bound methods
 _handlers: dict = {}
+
+
+class StreamContext:
+    """Track client-side cancellation for a streaming response."""
+
+    def __init__(self):
+        """Create a new uncancelled stream context."""
+        self._cancel_event = threading.Event()
+
+    def cancel(self):
+        """Mark the stream as cancelled by the client or transport."""
+        self._cancel_event.set()
+
+    def is_cancelled(self) -> bool:
+        """Return whether the stream has already been cancelled."""
+        return self._cancel_event.is_set()
 
 
 class InferenceRequestHandler(BaseHTTPRequestHandler):
@@ -66,9 +85,12 @@ class InferenceRequestHandler(BaseHTTPRequestHandler):
 
             if self.path == "/v1/chat/completions" and _handlers.get("chat"):
                 stream = body.get("stream", False)
+                stream_context = StreamContext() if stream else None
+                if stream_context:
+                    body["_stream_context"] = stream_context
                 result = _handlers["chat"](body)
                 if stream:
-                    return self._stream_response(result)
+                    return self._stream_response(result, stream_context)
                 return self._send_json(200, result)
 
             if self.path == "/v1/audio/transcriptions" and _handlers.get("transcriptions"):
@@ -99,8 +121,8 @@ class InferenceRequestHandler(BaseHTTPRequestHandler):
                 "detail": traceback.format_exc()
             })
 
-    def _stream_response(self, result: dict):
-        """Send SSE streaming response."""
+    def _stream_response(self, result: dict, stream_context: StreamContext | None = None):
+        """Send SSE streaming response from either a ready payload or an iterator."""
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
@@ -108,22 +130,125 @@ class InferenceRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
 
-        chunks = result.get("chunks", [result.get("text", "")])
-        model = result.get("model", self.engine_name)
+        if isinstance(result, dict):
+            model = result.get("model", self.engine_name)
+            chunks = result.get("chunks", [result.get("text", "")])
+            if isinstance(chunks, str):
+                chunks = [chunks]
+            try:
+                self._write_sse_chunk({
+                    "id": "chatcmpl-" + self.engine_name,
+                    "object": "chat.completion.chunk",
+                    "choices": [{"delta": {"role": "assistant"}, "index": 0}],
+                    "model": model
+                }, stream_context)
+                for chunk in chunks:
+                    self._write_sse_chunk({
+                        "id": "chatcmpl-" + self.engine_name,
+                        "object": "chat.completion.chunk",
+                        "choices": [{"delta": {"content": chunk}, "index": 0}],
+                        "model": model
+                    }, stream_context)
+                self._write_sse_chunk({
+                    "id": "chatcmpl-" + self.engine_name,
+                    "object": "chat.completion.chunk",
+                    "choices": [{"delta": {}, "index": 0, "finish_reason": "stop"}],
+                    "model": model
+                }, stream_context)
+                self._write_sse_done(stream_context)
+            except (BrokenPipeError, ConnectionResetError):
+                if stream_context:
+                    stream_context.cancel()
+            return
 
-        if isinstance(chunks, str):
-            chunks = [chunks]
+        model = self.engine_name
+        finished = False
+        self._write_sse_chunk({
+            "id": "chatcmpl-" + self.engine_name,
+            "object": "chat.completion.chunk",
+            "choices": [{"delta": {"role": "assistant"}, "index": 0}],
+            "model": model
+        }, stream_context)
 
-        for chunk in chunks:
-            data = json.dumps({
-                "id": "chatcmpl-" + self.engine_name,
-                "object": "chat.completion.chunk",
-                "choices": [{"delta": {"content": chunk}, "index": 0}],
-                "model": model
-            }, ensure_ascii=False)
-            self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
-            self.wfile.flush()
+        try:
+            for event in result:
+                if stream_context and stream_context.is_cancelled():
+                    break
+                if isinstance(event, str):
+                    self._write_sse_chunk({
+                        "id": "chatcmpl-" + self.engine_name,
+                        "object": "chat.completion.chunk",
+                        "choices": [{"delta": {"content": event}, "index": 0}],
+                        "model": model
+                    }, stream_context)
+                    continue
 
+                if not isinstance(event, dict):
+                    continue
+
+                model = event.get("model", model)
+                event_type = event.get("type", "delta")
+                if event_type == "delta":
+                    content = event.get("content", "")
+                    if content:
+                        self._write_sse_chunk({
+                            "id": event.get("id", "chatcmpl-" + self.engine_name),
+                            "object": "chat.completion.chunk",
+                            "choices": [{"delta": {"content": content}, "index": 0}],
+                            "model": model
+                        }, stream_context)
+                elif event_type == "done":
+                    self._write_sse_chunk({
+                        "id": event.get("id", "chatcmpl-" + self.engine_name),
+                        "object": "chat.completion.chunk",
+                        "choices": [{
+                            "delta": {},
+                            "index": 0,
+                            "finish_reason": event.get("finish_reason", "stop")
+                        }],
+                        "model": model
+                    }, stream_context)
+                    finished = True
+                    break
+                elif event_type == "error":
+                    self._write_sse_chunk({
+                        "error": {
+                            "message": event.get("message", "Streaming generation failed"),
+                            "type": "server_error",
+                            "param": None,
+                            "code": "streaming_generation_failed"
+                        }
+                    }, stream_context)
+                    finished = True
+                    break
+        except (BrokenPipeError, ConnectionResetError):
+            if stream_context:
+                stream_context.cancel()
+            if hasattr(result, "close"):
+                result.close()
+        finally:
+            if not (stream_context and stream_context.is_cancelled()):
+                if not finished:
+                    self._write_sse_chunk({
+                        "id": "chatcmpl-" + self.engine_name,
+                        "object": "chat.completion.chunk",
+                        "choices": [{"delta": {}, "index": 0, "finish_reason": "stop"}],
+                        "model": model
+                    }, stream_context)
+                self._write_sse_done(stream_context)
+
+    def _write_sse_chunk(self, payload: dict, stream_context: StreamContext | None = None):
+        """Write one SSE JSON chunk and flush it immediately."""
+        if stream_context and stream_context.is_cancelled():
+            return
+        data = json.dumps(payload, ensure_ascii=False)
+        self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
+        self.wfile.flush()
+
+    def _write_sse_done(self, stream_context: StreamContext | None = None):
+        """Write the final SSE terminator chunk."""
+        if stream_context and stream_context.is_cancelled():
+            return
         self.wfile.write(b"data: [DONE]\n\n")
         self.wfile.flush()
 

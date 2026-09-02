@@ -1,4 +1,6 @@
 """
+Author: zhenz
+
 VLM Vision — Qwen3-VL-4B-Instruct INT4 (OpenVINO)
 Supports image understanding via VLMPipeline.
 
@@ -9,6 +11,8 @@ Usage:
 """
 import sys
 import time
+import queue
+import threading
 import argparse
 from pathlib import Path
 
@@ -53,6 +57,122 @@ def describe(pipe: ovg.VLMPipeline, image_path: str, prompt: str = "请详细描
     }
 
 
+def build_vision_usage(prompt: str, text: str) -> dict:
+    """Estimate token usage for vision chat responses."""
+    return {
+        "prompt_tokens": len(prompt) // 4,
+        "completion_tokens": len(text) // 4,
+        "total_tokens": (len(prompt) + len(text)) // 4
+    }
+
+
+def iter_text_chunks(text: str, chunk_size: int = 16):
+    """Yield small text chunks for degraded streaming fallback."""
+    if not text:
+        return
+    for index in range(0, len(text), chunk_size):
+        yield text[index:index + chunk_size]
+
+
+def create_streaming_vision_events(
+    pipe: ovg.VLMPipeline,
+    prompt: str,
+    image_tensor: ov.Tensor,
+    model: str,
+    stream_context=None,
+    max_tokens: int = 256
+):
+    """Yield incremental vision text events using OpenVINO streamers when available."""
+    event_queue: queue.Queue[dict] = queue.Queue()
+    collected_chunks: list[str] = []
+
+    def emit_delta(content: str):
+        """Store and publish one incremental text fragment."""
+        if not content or is_stream_cancelled(stream_context):
+            return
+        collected_chunks.append(content)
+        event_queue.put({
+            "type": "delta",
+            "content": content,
+            "model": model
+        })
+
+    def run_generation():
+        """Run VLM generation in a worker thread so SSE can flush promptly."""
+        try:
+            if hasattr(ovg, "TextStreamer") and hasattr(ovg, "StreamingStatus") and hasattr(pipe, "get_tokenizer"):
+                streamer = ovg.TextStreamer(
+                    pipe.get_tokenizer(),
+                    lambda text: _streamer_callback(text, emit_delta, stream_context)
+                )
+                try:
+                    pipe.generate(prompt, image=image_tensor, max_new_tokens=max_tokens, streamer=streamer)
+                except TypeError:
+                    _generate_with_chunk_fallback(pipe, prompt, image_tensor, max_tokens, emit_delta, stream_context)
+            else:
+                _generate_with_chunk_fallback(pipe, prompt, image_tensor, max_tokens, emit_delta, stream_context)
+
+            full_text = "".join(collected_chunks)
+            if is_stream_cancelled(stream_context):
+                return
+            event_queue.put({
+                "type": "done",
+                "model": model,
+                "finish_reason": "stop",
+                "text": full_text,
+                "usage": build_vision_usage(prompt, full_text)
+            })
+        except Exception as exc:
+            event_queue.put({
+                "type": "error",
+                "model": model,
+                "message": str(exc)
+            })
+
+    threading.Thread(target=run_generation, daemon=True).start()
+
+    while True:
+        event = event_queue.get()
+        yield event
+        if event.get("type") in ("done", "error"):
+            break
+
+
+def _streamer_callback(text: str, emit_delta, stream_context=None):
+    """Forward one decoded fragment and tell OpenVINO generation to continue."""
+    if is_stream_cancelled(stream_context):
+        return get_cancel_streaming_status()
+    emit_delta(text)
+    return ovg.StreamingStatus.RUNNING
+
+
+def _generate_with_chunk_fallback(
+    pipe: ovg.VLMPipeline,
+    prompt: str,
+    image_tensor: ov.Tensor,
+    max_tokens: int,
+    emit_delta,
+    stream_context=None
+):
+    """Fall back to post-generation chunk flush when native streaming is unavailable."""
+    result = pipe.generate(prompt, image=image_tensor, max_new_tokens=max_tokens)
+    text = result.texts[0] if hasattr(result, 'texts') else str(result)
+    for chunk in iter_text_chunks(text):
+        if is_stream_cancelled(stream_context):
+            break
+        emit_delta(chunk)
+
+
+def is_stream_cancelled(stream_context=None) -> bool:
+    """Return whether the current streaming response has been cancelled."""
+    return bool(stream_context and stream_context.is_cancelled())
+
+
+def get_cancel_streaming_status():
+    """Return the best available OpenVINO streaming status for cancellation."""
+    return getattr(ovg.StreamingStatus, "CANCEL", getattr(ovg.StreamingStatus, "STOP", ovg.StreamingStatus.RUNNING))
+
+
 def interactive(pipe: ovg.VLMPipeline):
     """Interactive vision session."""
     print("\n" + "=" * 60)
@@ -90,6 +210,7 @@ def create_vision_handler(pipe: ovg.VLMPipeline):
         model = request.get("model", "qwen3-vl-4b")
         max_tokens = request.get("max_tokens", 256)
         stream = request.get("stream", False)
+        stream_context = request.get("_stream_context")
 
         # Extract text prompt and image
         prompt = ""
@@ -137,6 +258,10 @@ def create_vision_handler(pipe: ovg.VLMPipeline):
                 }]
             }
 
+        image_tensor = load_image(image_path)
+        if stream:
+            return create_streaming_vision_events(pipe, prompt, image_tensor, model, stream_context, max_tokens)
+
         result = describe(pipe, image_path, prompt, max_tokens)
         text = result["text"].strip()
 
@@ -149,11 +274,9 @@ def create_vision_handler(pipe: ovg.VLMPipeline):
                 "index": 0,
                 "message": {"role": "assistant", "content": text},
                 "finish_reason": "stop"
-            }]
+            }],
+            "usage": build_vision_usage(prompt, text)
         }
-
-        if stream:
-            response["chunks"] = [text[i:i+16] for i in range(0, len(text), 16)] or [text]
 
         return response
 

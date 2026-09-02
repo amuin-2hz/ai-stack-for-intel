@@ -8,7 +8,7 @@ import { cpus, freemem, hostname, loadavg, networkInterfaces, platform, release,
 import { readFile, readdir } from "node:fs/promises";
 import { createServer } from "node:net";
 import { runCommand } from "./utils.js";
-import { detectDevices } from "./engineManager.js";
+import { detectDevices, resolveRuntimePython } from "./engineManager.js";
 
 export const servicePorts = {
   chat: Number(process.env.CHAT_ENGINE_PORT ?? "31000"),
@@ -130,7 +130,8 @@ function normalizeDeviceModel(productName?: string, productVersion?: string, boa
 /* ── OpenVINO status (replaces nvidiaStatus) ─────── */
 async function openvinoStatus(): Promise<Record<string, unknown>> {
   try {
-    const result = await runCommand("python3", [
+    const pythonExecutable = await resolveRuntimePython();
+    const result = await runCommand(pythonExecutable, [
       "-c",
       "import openvino as ov; c=ov.Core(); print('version='+ov.__version__+' devices='+','.join(c.available_devices))"
     ], 10000);

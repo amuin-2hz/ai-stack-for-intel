@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { listModels, parseModelSource } from "../src/modelRegistry.js";
+import { findModelByName, listModels, parseModelSource } from "../src/modelRegistry.js";
 
 test("listModels flags HF weights without config.json", async () => {
   const root = join(tmpdir(), "ai-stack-model-audit-" + Date.now());
@@ -97,6 +97,25 @@ test("listModels recognizes Qwen3-ASR thinker exports", async () => {
     assert.equal(models[0].capabilities[0], "asr");
     assert.equal(models[0].compatibility.asr.status, "compatible");
     assert.match(models[0].compatibility.asr.reason, /isolated OpenVINO helper runtime/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("findModelByName resolves public and internal model names", async () => {
+  const root = join(tmpdir(), "ai-stack-model-name-match-" + Date.now());
+  const modelDir = join(root, "Qwen3-Chat-Model");
+  await mkdir(modelDir, { recursive: true });
+  try {
+    await writeFile(join(modelDir, "openvino_model.xml"), "<xml />", "utf-8");
+    await writeFile(join(modelDir, "openvino_model.bin"), "weights", "utf-8");
+    await writeFile(join(modelDir, "config.json"), JSON.stringify({ model_type: "qwen2" }), "utf-8");
+
+    const byId = await findModelByName(root, "qwen3-chat-model");
+    const byDisplayName = await findModelByName(root, "Qwen3-Chat-Model");
+
+    assert.equal(byId?.id, "qwen3-chat-model");
+    assert.equal(byDisplayName?.display_name, "Qwen3-Chat-Model");
   } finally {
     await rm(root, { recursive: true, force: true });
   }

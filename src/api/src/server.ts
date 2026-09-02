@@ -9,6 +9,7 @@ import { createDeploymentHelpers } from "./deploymentHelpers.js";
 import { createWsHandler } from "./wsHandler.js";
 import { proxyWebSocket } from "./httpProxy.js";
 import { createRouter, sendJson, getPath } from "./serverUtils.js";
+import { sendOpenAiError } from "./openaiProtocol.js";
 import { requiresElectronPrivilege, isElectronRequest } from "./permissions.js";
 
 /* ── route modules ─────────────────────────────── */
@@ -23,7 +24,7 @@ import { register as deploymentRoutes } from "./routes/deployments.js";
 import { register as openaiRoutes } from "./routes/openai.js";
 import { register as legacyRoutes } from "./routes/legacy.js";
 import { cleanupOrphanEngines, startEngine, enginePresets } from "./engineManager.js";
-import { listModels } from "./modelRegistry.js";
+import { listModels, publishedModelNameFor } from "./modelRegistry.js";
 
 /* ── constants ─────────────────────────────────── */
 const port = Number(process.env.PORT ?? "8000");
@@ -51,7 +52,7 @@ taskRoutes(route, workspaceRoot, logsRoot);
 engineRoutes(route, modelsRoot, workspaceRoot, logsRoot);
 containerRoutes(route, workspaceRoot, logsRoot, stateRoot);
 deploymentRoutes(route, dh, modelsRoot, workspaceRoot, logsRoot);
-openaiRoutes(route, dh, oai);
+openaiRoutes(route, modelsRoot, dh, oai);
 legacyRoutes(route, modelsRoot, uploadsRoot, audioServiceUrl);
 
 /* ── HTTP server ───────────────────────────────── */
@@ -70,7 +71,12 @@ const server = createServer(async (req, res) => {
   try {
     await m.handler(req, res, m.params);
   } catch (error) {
-    sendJson(res, 500, { detail: error instanceof Error ? error.message : String(error) });
+    const message = error instanceof Error ? error.message : String(error);
+    if (parsedPath.startsWith("/v1/") || parsedPath === "/v3/rerank") {
+      sendOpenAiError(res, 500, message, { type: "server_error" });
+      return;
+    }
+    sendJson(res, 500, { detail: message });
   }
 });
 
@@ -131,7 +137,7 @@ async function warmupEngines(
       const engine = await startEngine({
         type: etype,
         model_id: model.id,
-        model_name: model.display_name,
+        model_name: publishedModelNameFor(model),
         model_path: model.local.path,
         port: preset.default_port,
         workspaceRoot,

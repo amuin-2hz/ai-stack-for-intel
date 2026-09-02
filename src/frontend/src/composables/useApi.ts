@@ -26,6 +26,16 @@ export async function streamChatCompletion(
   callbacks: StreamCallbacks,
 ): Promise<AbortController> {
   const controller = new AbortController();
+  let doneCalled = false;
+
+  /**
+   * Notify completion exactly once for both normal close and abort paths.
+   */
+  function finishStream() {
+    if (doneCalled) return;
+    doneCalled = true;
+    callbacks.onDone();
+  }
 
   try {
     const response = await fetch(apiUrl('/v1/chat/completions'), {
@@ -66,8 +76,7 @@ export async function streamChatCompletion(
 
         const data = trimmed.slice(6); // Remove 'data: ' prefix
         if (data === '[DONE]') {
-          reader.cancel();
-          callbacks.onDone();
+          finishStream();
           return controller;
         }
 
@@ -82,11 +91,11 @@ export async function streamChatCompletion(
     }
 
     // Stream ended without [DONE]
-    callbacks.onDone();
+    finishStream();
     return controller;
   } catch (error) {
     if ((error as Error).name === 'AbortError') {
-      callbacks.onDone();
+      finishStream();
     } else {
       callbacks.onError(error instanceof Error ? error : new Error(String(error)));
     }

@@ -9,6 +9,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { isAbsolute, join } from "node:path";
 import { access } from "node:fs/promises";
+import { homedir } from "node:os";
 import { runCommand } from "./utils.js";
 
 /* ── types ───────────────────────────────────────── */
@@ -115,6 +116,33 @@ function randomId(prefix = "eng"): string {
 
 const now = () => new Date().toISOString();
 
+/**
+ * Resolve the preferred Python executable for OpenVINO-based inference.
+ */
+export async function resolveRuntimePython(): Promise<string> {
+  const runtimeHome = process.env.AI_STACK_RUNTIME_DIR
+    ?? join(homedir(), ".local", "share", "amuin-ai-stack", "runtime");
+  const candidates = [
+    process.env.AI_STACK_RUNTIME_PYTHON,
+    join(runtimeHome, "bin", "python"),
+    "python3"
+  ].filter((candidate): candidate is string => Boolean(candidate));
+
+  for (const candidate of candidates) {
+    if (candidate === "python3") {
+      return candidate;
+    }
+    try {
+      await access(candidate);
+      return candidate;
+    } catch {
+      // Try the next candidate.
+    }
+  }
+
+  return "python3";
+}
+
 /* ── public API ──────────────────────────────────── */
 
 /** List all known engines (running + stopped) */
@@ -142,6 +170,7 @@ export function presetForModel(modelName: string): EnginePreset | undefined {
 
 /** Detect available devices (NPU / GPU / CPU) */
 export async function detectDevices(): Promise<{ NPU: boolean; GPU: boolean; CPU: boolean }> {
+  const pythonExecutable = await resolveRuntimePython();
   const result: { NPU: boolean; GPU: boolean; CPU: boolean } = {
     NPU: false,
     GPU: false,
@@ -150,7 +179,7 @@ export async function detectDevices(): Promise<{ NPU: boolean; GPU: boolean; CPU
 
   // Check NPU via OpenVINO or /dev/accel
   try {
-    const npuCheck = await runCommand("python3", [
+    const npuCheck = await runCommand(pythonExecutable, [
       "-c",
       "from openvino import Core; c=Core(); print(','.join(c.available_devices))"
     ], 10000);
@@ -167,7 +196,7 @@ export async function detectDevices(): Promise<{ NPU: boolean; GPU: boolean; CPU
 
   // Check GPU
   try {
-    const gpuCheck = await runCommand("python3", [
+    const gpuCheck = await runCommand(pythonExecutable, [
       "-c",
       "from openvino import Core; c=Core(); print(','.join(c.available_devices))"
     ], 10000);
@@ -237,7 +266,7 @@ export async function startEngine(params: {
   const scriptPath = join(params.workspaceRoot, script);
   const pythonExecutable = qwen3AsrThinker
     ? process.env.QWEN3_ASR_PYTHON ?? join(params.workspaceRoot, ".venv", "qwen3-asr", "bin", "python")
-    : "python3";
+    : await resolveRuntimePython();
   if (qwen3AsrThinker) {
     try {
       await access(pythonExecutable);

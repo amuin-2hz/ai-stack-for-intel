@@ -36,6 +36,37 @@ export async function getModel(modelsRoot: string, modelId: string): Promise<Mod
   return (await listModels(modelsRoot)).find((model) => model.id === modelId);
 }
 
+/**
+ * Return the public model name exposed through OpenAI-compatible APIs.
+ */
+export function publishedModelNameFor(model: Pick<ModelRecord, "id" | "display_name" | "serving">): string {
+  return model.serving.openai_model ?? model.id;
+}
+
+/**
+ * Match a user-supplied model name against public and internal identifiers.
+ */
+export function modelMatchesName(
+  model: Pick<ModelRecord, "id" | "display_name" | "serving">,
+  modelName: string
+): boolean {
+  const normalizedTarget = normalizeModelName(modelName);
+  if (!normalizedTarget) return false;
+  const candidates = [
+    model.id,
+    model.display_name,
+    publishedModelNameFor(model)
+  ];
+  return candidates.some((candidate) => normalizeModelName(candidate) === normalizedTarget);
+}
+
+/**
+ * Resolve a model from either its public name or its internal registry identifiers.
+ */
+export async function findModelByName(modelsRoot: string, modelName: string): Promise<ModelRecord | undefined> {
+  return (await listModels(modelsRoot)).find((model) => modelMatchesName(model, modelName));
+}
+
 export async function deleteModel(modelsRoot: string, modelId: string): Promise<{ model_id: string; deleted_path: string }> {
   const model = await getModel(modelsRoot, modelId);
   if (!model) throw new Error("Unknown model: " + modelId);
@@ -51,6 +82,13 @@ export async function deleteModel(modelsRoot: string, modelId: string): Promise<
 
 async function removeModelPath(target: string): Promise<void> {
   await rm(target, { recursive: true, force: true });
+}
+
+/**
+ * Normalize model names so callers can use either public aliases or local names.
+ */
+function normalizeModelName(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
 }
 
 /* ── service model fetch ───────────────────────── */
