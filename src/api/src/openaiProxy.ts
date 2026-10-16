@@ -137,20 +137,26 @@ export function createOpenAiProxy(deps: OpenAIProxyDeps, internals: OpenAIProxyI
         mode,
         timeout
       );
-      res.writeHead(result.status, {
-        "content-type": result.contentType || "application/json; charset=utf-8",
-        "access-control-allow-origin": "*"
-      });
+      // Decide the final status/headers/body before writing anything: writing
+      // first and then failing (formatting, upstream shape) left the response
+      // half-sent and made the outer catch write a second time.
       if (result.status >= 400 && (result.contentType || "").includes("application/json")) {
         const upstreamPayload = safeJsonParse(result.body.toString("utf-8"));
-        res.end(JSON.stringify(normalizeOpenAiErrorPayload(result.status, upstreamPayload, "Audio request failed.")));
+        sendJsonProxy(res, result.status, normalizeOpenAiErrorPayload(result.status, upstreamPayload, "Audio request failed."));
         return;
       }
       if (path === "/audio/transcriptions") {
-        const formatted = formatAudioTranscriptionPayload(
-          safeJsonParse(result.body.toString("utf-8")),
-          normalizedBody
-        );
+        let formatted: { contentType: string; body: string };
+        try {
+          formatted = formatAudioTranscriptionPayload(
+            safeJsonParse(result.body.toString("utf-8")),
+            normalizedBody
+          );
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          sendJsonProxy(res, 502, createOpenAiErrorPayload(`Audio transcription response could not be normalized: ${message}`, { type: "server_error" }));
+          return;
+        }
         res.writeHead(result.status, {
           "content-type": formatted.contentType,
           "access-control-allow-origin": "*"
@@ -158,6 +164,10 @@ export function createOpenAiProxy(deps: OpenAIProxyDeps, internals: OpenAIProxyI
         res.end(formatted.body);
         return;
       }
+      res.writeHead(result.status, {
+        "content-type": result.contentType || "application/json; charset=utf-8",
+        "access-control-allow-origin": "*"
+      });
       res.end(result.body);
       return;
     }

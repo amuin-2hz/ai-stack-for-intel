@@ -33,6 +33,12 @@ export function sendJson(
   status: number,
   payload: unknown
 ): void {
+  // A handler may throw after it already responded (e.g. an error path writes a
+  // 4xx itself and then rethrows). Writing again would raise
+  // ERR_HTTP_HEADERS_SENT, and that exception escapes the request callback and
+  // terminates the whole API process — taking the warmup engines down with it.
+  // Once a response is on the wire a late send is a no-op.
+  if (res.headersSent || res.writableEnded) return;
   const body = JSON.stringify(payload);
   res.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
@@ -49,6 +55,8 @@ export function sendText(
   status: number,
   body: string
 ): void {
+  // Same rule as sendJson: never write twice for one response.
+  if (res.headersSent || res.writableEnded) return;
   res.writeHead(status, {
     "content-type": "text/plain; charset=utf-8",
     "access-control-allow-origin": "*"

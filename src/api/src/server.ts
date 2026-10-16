@@ -72,6 +72,13 @@ const server = createServer(async (req, res) => {
     await m.handler(req, res, m.params);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    // If the handler already produced a response, the failure happened after the
+    // headers were on the wire. Attempting to write again raises
+    // ERR_HTTP_HEADERS_SENT; just record it and leave the response alone.
+    if (res.headersSent || res.writableEnded) {
+      console.error(`[handler] ${req.method} ${parsedPath} failed after responding: ${message}`);
+      return;
+    }
     if (parsedPath.startsWith("/v1/") || parsedPath === "/v3/rerank") {
       sendOpenAiError(res, 500, message, { type: "server_error" });
       return;
@@ -108,6 +115,16 @@ async function shutdown() {
 }
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
+
+// One bad request must not take the API — and the inference engines it owns —
+// down with it. Node terminates on an unhandled rejection/exception by default;
+// keep the process alive and record the failure instead.
+process.on("unhandledRejection", (reason) => {
+  console.error(`[unhandledRejection] ${reason instanceof Error ? reason.stack ?? reason.message : String(reason)}`);
+});
+process.on("uncaughtException", (error) => {
+  console.error(`[uncaughtException] ${error.stack ?? error.message}`);
+});
 
 /** Eagerly start ASR and TTS engines so WebSocket endpoints are ready at launch. */
 async function warmupEngines(
